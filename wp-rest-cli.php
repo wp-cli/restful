@@ -32,8 +32,13 @@ WP_CLI::add_hook( 'after_wp_load', function(){
 		}
 		foreach( $endpoints as $endpoint ) {
 
+			$parsed_args = preg_match_all( '#\([^\)]+\)#', $route, $matches );
+			$resource_id = ! empty( $matches[0] ) ? array_pop( $matches[0] ) : null;
+			$trimmed_route = rtrim( $route );
+
+			// List a collection
 			if ( array( 'GET' => true ) == $endpoint['methods']
-				&& '(?P<id>[\d]+)' !== substr( $route, -13 ) ) {
+				&& $resource_id !== substr( $trimmed_route, - strlen( $resource_id ) ) ) {
 
 				$callable = function( $args, $assoc_args ) use( $route, $fields ){
 
@@ -41,7 +46,6 @@ WP_CLI::add_hook( 'after_wp_load', function(){
 						'fields'      => $fields,
 						);
 					$assoc_args = array_merge( $defaults, $assoc_args );
-
 					$response = rest_do_request( new WP_REST_Request( 'GET', $route ) );
 					if ( $error = $response->as_error() ) {
 						WP_CLI::error( $error );
@@ -50,6 +54,43 @@ WP_CLI::add_hook( 'after_wp_load', function(){
 				};
 
 				WP_CLI::add_command( "{$parent} list", $callable );
+			}
+
+			// Get a specific resource
+			if ( array( 'GET' => true ) == $endpoint['methods']
+				&& $resource_id === substr( $trimmed_route, - strlen( $resource_id ) ) ) {
+				$callable = function( $args, $assoc_args ) use( $route, $fields, $resource_id ){
+
+					$defaults = array(
+						'fields'      => $fields,
+						);
+					$assoc_args = array_merge( $defaults, $assoc_args );
+
+					$route = str_replace( $resource_id, $args[0], $route );
+					$response = rest_do_request( new WP_REST_Request( 'GET', $route ) );
+					if ( $error = $response->as_error() ) {
+						WP_CLI::error( $error );
+					}
+					$formatter = new \WP_CLI\Formatter( $assoc_args, $fields );
+					$formatter->display_item( $response->get_data() );
+				};
+
+				WP_CLI::add_command( "{$parent} get", $callable );
+			}
+
+			// Delete a specific resource 
+			if ( array( 'DELETE' => true ) == $endpoint['methods']
+				&& $resource_id === substr( $trimmed_route, - strlen( $resource_id ) ) ) {
+				$callable = function( $args, $assoc_args ) use( $route, $fields, $resource_id, $parent ){
+					$route = str_replace( $resource_id, $args[0], $route );
+					$response = rest_do_request( new WP_REST_Request( 'DELETE', $route ) );
+					if ( $error = $response->as_error() ) {
+						WP_CLI::error( $error );
+					}
+					WP_CLI::success( "Deleted {$parent}." );
+				};
+
+				WP_CLI::add_command( "{$parent} get", $callable );
 			}
 
 		}
