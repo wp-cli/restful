@@ -1,0 +1,16 @@
+{
+    "name": "danielbachhuber/wp-rest-cli",
+    "description": "Unlock the potential of the WP REST API at the command line",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Daniel Bachhuber",
+            "email": "daniel@handbuilt.co"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {},
+    "require-dev": {
+        "behat/behat": "~2.5"
+    }
+}
