@@ -12,5 +12,8 @@
     "require": {},
     "require-dev": {
         "behat/behat": "~2.5"
+    },
+    "autoload": {
+        "files": [ "wp-rest-cli.php" ]
     }
 }
