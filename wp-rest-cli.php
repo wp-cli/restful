@@ -3,6 +3,8 @@
  * Use WP-API at the command line.
  */
 
+require_once __DIR__ . '/inc/RestCommand.php';
+
 WP_CLI::add_hook( 'after_wp_load', function(){
 
 	if ( ! class_exists( 'WP_REST_Server' ) ) {
@@ -30,27 +32,98 @@ WP_CLI::add_hook( 'after_wp_load', function(){
 				$fields[] = $key;
 			}
 		}
+
 		foreach( $endpoints as $endpoint ) {
 
+			$parsed_args = preg_match_all( '#\([^\)]+\)#', $route, $matches );
+			$resource_id = ! empty( $matches[0] ) ? array_pop( $matches[0] ) : null;
+			$trimmed_route = rtrim( $route );
+			$is_singular = $resource_id === substr( $trimmed_route, - strlen( $resource_id ) );
+
+			$command = $method = '';
+			// List a collection
 			if ( array( 'GET' => true ) == $endpoint['methods']
-				&& '(?P<id>[\d]+)' !== substr( $route, -13 ) ) {
-
-				$callable = function( $args, $assoc_args ) use( $route, $fields ){
-
-					$defaults = array(
-						'fields'      => $fields,
-						);
-					$assoc_args = array_merge( $defaults, $assoc_args );
-
-					$response = rest_do_request( new WP_REST_Request( 'GET', $route ) );
-					if ( $error = $response->as_error() ) {
-						WP_CLI::error( $error );
-					}
-					WP_CLI\Utils\format_items( 'table', $response->get_data(), $assoc_args['fields'] );
-				};
-
-				WP_CLI::add_command( "{$parent} list", $callable );
+				&& ! $is_singular ) {
+				$command = 'list';
 			}
+
+			// Create a specific resource
+			if ( array( 'POST' => true ) == $endpoint['methods']
+				&& ! $is_singular ) {
+				$command = 'create';
+			}
+
+			// Get a specific resource
+			if ( array( 'GET' => true ) == $endpoint['methods']
+				&& $is_singular ) {
+				$command = 'get';
+			}
+
+			// Update a specific resource
+			if ( array_key_exists( 'POST', $endpoint['methods'] )
+				&& $is_singular ) {
+				$command = 'update';
+			}
+
+			// Delete a specific resource
+			if ( array( 'DELETE' => true ) == $endpoint['methods']
+				&& $is_singular ) {
+				$command = 'delete';
+			}
+
+			if ( empty( $command ) ) {
+				continue;
+			}
+
+			$rest_command = new WP_REST_CLI\RestCommand( $route_data['schema']['title'], $trimmed_route, $resource_id, $fields );
+
+			$synopsis = array();
+			if ( in_array( $command, array( 'delete', 'get', 'update' ) ) ) {
+				$synopsis[] = array(
+					'name'        => 'id',
+					'type'        => 'positional',
+					'description' => 'The id for the resource.',
+					'optional'    => false,
+				);
+			}
+
+			if ( ! empty( $endpoint['args'] ) ) {
+				foreach( $endpoint['args'] as $name => $args ) {
+					$synopsis[] = array(
+						'name'        => $name,
+						'type'        => 'assoc',
+						'description' => ! empty( $args['description'] ) ? $args['description'] : '',
+						'optional'    => empty( $args['required'] ) ? true : false,
+					);
+				}
+			}
+
+			if ( in_array( $command, array( 'list', 'get' ) ) ) {
+				$synopsis[] = array(
+					'name'        => 'fields',
+					'type'        => 'assoc',
+					'description' => 'Limit response to specific fields. Defaults to all fields.',
+					'optional'    => true,
+				);
+				$synopsis[] = array(
+					'name'        => 'format',
+					'type'        => 'assoc',
+					'description' => 'Limit response to specific fields. Defaults to all fields.',
+					'optional'    => true,
+				);
+			}
+
+			$methods = array(
+				'list'       => 'list_items',
+				'create'     => 'create_item',
+				'delete'     => 'delete_item',
+				'get'        => 'get_item',
+				'update'     => 'update_item',
+			);
+
+			WP_CLI::add_command( "{$parent} {$command}", array( $rest_command, $methods[ $command ] ), array(
+				'synopsis' => $synopsis,
+			) );
 
 		}
 
