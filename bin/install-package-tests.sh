@@ -21,19 +21,6 @@ install_wp_cli() {
 
 }
 
-set_package_context() {
-
-	touch $WP_CLI_CONFIG_PATH
-	printf 'require:' > $WP_CLI_CONFIG_PATH
-	requires=$(php $PACKAGE_DIR/utils/get-package-require-from-composer.php composer.json)
-	for require in "${requires[@]}"
-	do
-		printf "\n%2s-%1s$PACKAGE_DIR/$require" >> $WP_CLI_CONFIG_PATH
-	done
-	printf "\n" >> $WP_CLI_CONFIG_PATH
-
-}
-
 download_behat() {
 
 	cd $PACKAGE_DIR

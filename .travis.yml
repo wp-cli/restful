@@ -16,7 +16,6 @@ php:
 env:
   global:
     - WP_CLI_BIN_DIR=/tmp/wp-cli-phar
-    - WP_CLI_CONFIG_PATH=/tmp/wp-cli-phar/config.yml
     - WP_VERSION=latest
 
 before_script:
