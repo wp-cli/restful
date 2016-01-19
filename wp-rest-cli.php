@@ -3,6 +3,8 @@
  * Use WP-API at the command line.
  */
 
+require_once __DIR__ . '/inc/RestCommand.php';
+
 WP_CLI::add_hook( 'after_wp_load', function(){
 
 	if ( ! class_exists( 'WP_REST_Server' ) ) {
@@ -30,6 +32,7 @@ WP_CLI::add_hook( 'after_wp_load', function(){
 				$fields[] = $key;
 			}
 		}
+
 		foreach( $endpoints as $endpoint ) {
 
 			$parsed_args = preg_match_all( '#\([^\)]+\)#', $route, $matches );
@@ -37,61 +40,36 @@ WP_CLI::add_hook( 'after_wp_load', function(){
 			$trimmed_route = rtrim( $route );
 			$is_singular = $resource_id === substr( $trimmed_route, - strlen( $resource_id ) );
 
+			$rest_command = new WP_REST_CLI\RestCommand( $route_data['schema']['title'], $trimmed_route, $resource_id, $fields );
+
 			// List a collection
 			if ( array( 'GET' => true ) == $endpoint['methods']
 				&& ! $is_singular ) {
+				WP_CLI::add_command( "{$parent} list", array( $rest_command, 'list_items' ) );
+			}
 
-				$callable = function( $args, $assoc_args ) use( $route, $fields ){
-
-					$defaults = array(
-						'fields'      => $fields,
-						);
-					$assoc_args = array_merge( $defaults, $assoc_args );
-					$response = rest_do_request( new WP_REST_Request( 'GET', $route ) );
-					if ( $error = $response->as_error() ) {
-						WP_CLI::error( $error );
-					}
-					WP_CLI\Utils\format_items( 'table', $response->get_data(), $assoc_args['fields'] );
-				};
-
-				WP_CLI::add_command( "{$parent} list", $callable );
+			// Create a specific resource
+			if ( array( 'POST' => true ) == $endpoint['methods']
+				&& ! $is_singular ) {
+				WP_CLI::add_command( "{$parent} create", array( $rest_command, 'create_item' ) );
 			}
 
 			// Get a specific resource
 			if ( array( 'GET' => true ) == $endpoint['methods']
 				&& $is_singular ) {
-				$callable = function( $args, $assoc_args ) use( $route, $fields, $resource_id ){
+				WP_CLI::add_command( "{$parent} get", array( $rest_command, 'get_item' ) );
+			}
 
-					$defaults = array(
-						'fields'      => $fields,
-						);
-					$assoc_args = array_merge( $defaults, $assoc_args );
-
-					$route = str_replace( $resource_id, $args[0], $route );
-					$response = rest_do_request( new WP_REST_Request( 'GET', $route ) );
-					if ( $error = $response->as_error() ) {
-						WP_CLI::error( $error );
-					}
-					$formatter = new \WP_CLI\Formatter( $assoc_args, $fields );
-					$formatter->display_item( $response->get_data() );
-				};
-
-				WP_CLI::add_command( "{$parent} get", $callable );
+			// Update a specific resource
+			if ( array_key_exists( 'POST', $endpoint['methods'] )
+				&& $is_singular ) {
+				WP_CLI::add_command( "{$parent} update", array( $rest_command, 'update_item' ) );
 			}
 
 			// Delete a specific resource
 			if ( array( 'DELETE' => true ) == $endpoint['methods']
 				&& $is_singular ) {
-				$callable = function( $args, $assoc_args ) use( $route, $fields, $resource_id, $parent ){
-					$route = str_replace( $resource_id, $args[0], $route );
-					$response = rest_do_request( new WP_REST_Request( 'DELETE', $route ) );
-					if ( $error = $response->as_error() ) {
-						WP_CLI::error( $error );
-					}
-					WP_CLI::success( "Deleted {$parent}." );
-				};
-
-				WP_CLI::add_command( "{$parent} get", $callable );
+				WP_CLI::add_command( "{$parent} delete", array( $rest_command, 'delete_item' ) );
 			}
 
 		}
