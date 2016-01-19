@@ -37,3 +37,48 @@ Feature: Manage WordPress comments through the REST API
     | Field       | Value         |
     | author_name | Mr WordPress  |
     | id          | 1             |
+
+  Scenario: Create a comment
+    When I run `wp rest comment create --post=1 --content="Hello World, again" --user=1`
+    Then STDOUT should contain:
+      """
+      Success: Created comment.
+      """
+
+    When I run `wp rest comment get 2 --fields=content --format=json`
+    Then STDOUT should contain:
+      """
+      {"content":{"rendered":"<p>Hello World, again<\/p>\n"}}
+      """
+
+  Scenario: Delete a comment
+    When I try `wp rest comment update 1 --content="Hello World"`
+    Then STDERR should contain:
+      """
+      Error: Sorry, you can not edit this comment
+      """
+
+    When I run `wp rest comment update 1 --content="Hello World" --user=1`
+    Then STDOUT should contain:
+      """
+      Success: Updated comment.
+      """
+
+    When I run `wp rest comment get 1 --fields=content --format=json`
+    Then STDOUT should contain:
+      """
+      {"content":{"rendered":"<p>Hello World<\/p>\n"}}
+      """
+
+  Scenario: Delete a comment
+    When I try `wp rest comment delete 1`
+    Then STDERR should contain:
+      """
+      Error: Sorry, you can not edit this comment
+      """
+
+    When I run `wp rest comment delete 1 --user=1`
+    Then STDOUT should contain:
+      """
+      Success: Deleted comment.
+      """

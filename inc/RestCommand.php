@@ -26,7 +26,10 @@ class RestCommand {
 	 * @subcommand create
 	 */
 	public function create_item( $args, $assoc_args ) {
-
+		$request = new WP_REST_Request( 'POST', $this->get_base_route() );
+		$request->set_body_params( $assoc_args );
+		$response = $this->do_request( $request );
+		WP_CLI::success( "Created {$this->name}." );
 	}
 
 	/**
@@ -71,6 +74,7 @@ class RestCommand {
 	 */
 	public function update_item( $args, $assoc_args ) {
 		$request = new WP_REST_Request( 'POST', $this->get_filled_route( $args ) );
+		$request->set_body_params( $assoc_args );
 		$response = $this->do_request( $request );
 		WP_CLI::success( "Updated {$this->name}." );
 	}
