@@ -12,6 +12,10 @@ use \WP_CLI\Utils;
 if ( file_exists( __DIR__ . '/utils.php' ) ) {
 	require_once __DIR__ . '/utils.php';
 	require_once __DIR__ . '/Process.php';
+	$project_config = dirname( dirname( dirname( __FILE__ ) ) ) . '/wp-cli.yml';
+	if ( file_exists( $project_config ) && ! getenv( 'WP_CLI_CONFIG_PATH' ) ) {
+		putenv( 'WP_CLI_CONFIG_PATH=' . $project_config );
+	}
 // Inside WP-CLI
 } else {
 	require_once __DIR__ . '/../../php/utils.php';

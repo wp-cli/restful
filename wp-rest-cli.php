@@ -3,10 +3,6 @@
  * Use WP-API at the command line.
  */
 
-if ( ! class_exists( 'WP_CLI' ) ) {
-	return;
-}
-
 WP_CLI::add_hook( 'after_wp_load', function(){
 
 	if ( ! class_exists( 'WP_REST_Server' ) ) {
