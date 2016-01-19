@@ -1,4 +1,4 @@
-Feature: List WordPress comments through the REST API
+Feature: Manage WordPress comments through the REST API
 
   Background:
     Given a WP install
