@@ -25,6 +25,12 @@ Feature: Manage WordPress comments through the REST API
     | id     | author_name    |
     | 1      | Mr WordPress   |
 
+    When I run `wp rest comment list --format=count`
+    Then STDOUT should be:
+      """
+      1
+      """
+
   Scenario: Get a specific comment
     When I run `wp rest comment get 1 --fields=id,author_name`
     Then STDOUT should be a table containing rows:

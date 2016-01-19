@@ -40,37 +40,90 @@ WP_CLI::add_hook( 'after_wp_load', function(){
 			$trimmed_route = rtrim( $route );
 			$is_singular = $resource_id === substr( $trimmed_route, - strlen( $resource_id ) );
 
-			$rest_command = new WP_REST_CLI\RestCommand( $route_data['schema']['title'], $trimmed_route, $resource_id, $fields );
-
+			$command = $method = '';
 			// List a collection
 			if ( array( 'GET' => true ) == $endpoint['methods']
 				&& ! $is_singular ) {
-				WP_CLI::add_command( "{$parent} list", array( $rest_command, 'list_items' ) );
+				$command = 'list';
 			}
 
 			// Create a specific resource
 			if ( array( 'POST' => true ) == $endpoint['methods']
 				&& ! $is_singular ) {
-				WP_CLI::add_command( "{$parent} create", array( $rest_command, 'create_item' ) );
+				$command = 'create';
 			}
 
 			// Get a specific resource
 			if ( array( 'GET' => true ) == $endpoint['methods']
 				&& $is_singular ) {
-				WP_CLI::add_command( "{$parent} get", array( $rest_command, 'get_item' ) );
+				$command = 'get';
 			}
 
 			// Update a specific resource
 			if ( array_key_exists( 'POST', $endpoint['methods'] )
 				&& $is_singular ) {
-				WP_CLI::add_command( "{$parent} update", array( $rest_command, 'update_item' ) );
+				$command = 'update';
 			}
 
 			// Delete a specific resource
 			if ( array( 'DELETE' => true ) == $endpoint['methods']
 				&& $is_singular ) {
-				WP_CLI::add_command( "{$parent} delete", array( $rest_command, 'delete_item' ) );
+				$command = 'delete';
 			}
+
+			if ( empty( $command ) ) {
+				continue;
+			}
+
+			$rest_command = new WP_REST_CLI\RestCommand( $route_data['schema']['title'], $trimmed_route, $resource_id, $fields );
+
+			$synopsis = array();
+			if ( in_array( $command, array( 'delete', 'get', 'update' ) ) ) {
+				$synopsis[] = array(
+					'name'        => 'id',
+					'type'        => 'positional',
+					'description' => 'The id for the resource.',
+					'optional'    => false,
+				);
+			}
+
+			if ( ! empty( $endpoint['args'] ) ) {
+				foreach( $endpoint['args'] as $name => $args ) {
+					$synopsis[] = array(
+						'name'        => $name,
+						'type'        => 'assoc',
+						'description' => ! empty( $args['description'] ) ? $args['description'] : '',
+						'optional'    => empty( $args['required'] ) ? true : false,
+					);
+				}
+			}
+
+			if ( in_array( $command, array( 'list', 'get' ) ) ) {
+				$synopsis[] = array(
+					'name'        => 'fields',
+					'type'        => 'assoc',
+					'description' => 'Limit response to specific fields. Defaults to all fields.',
+					'optional'    => true,
+				);
+				$synopsis[] = array(
+					'name'        => 'format',
+					'type'        => 'assoc',
+					'description' => 'Limit response to specific fields. Defaults to all fields.',
+					'optional'    => true,
+				);
+			}
+
+			$methods = array(
+				'list'       => 'list_items',
+				'create'     => 'create_item',
+				'delete'     => 'delete_item',
+				'get'        => 'get_item',
+				'update'     => 'update_item',
+			);
+
+			WP_CLI::add_command( "{$parent} {$command}", array( $rest_command, $methods[ $command ] ), array(
+				'synopsis' => $synopsis,
+			) );
 
 		}
 

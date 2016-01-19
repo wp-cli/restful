@@ -72,7 +72,7 @@ class RestCommand {
 	public function update_item( $args, $assoc_args ) {
 		$request = new WP_REST_Request( 'POST', $this->get_filled_route( $args ) );
 		$response = $this->do_request( $request );
-		WP_CLI::success( "Deleted {$this->name}." );
+		WP_CLI::success( "Updated {$this->name}." );
 	}
 
 	/**
