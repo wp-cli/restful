@@ -35,10 +35,11 @@ WP_CLI::add_hook( 'after_wp_load', function(){
 			$parsed_args = preg_match_all( '#\([^\)]+\)#', $route, $matches );
 			$resource_id = ! empty( $matches[0] ) ? array_pop( $matches[0] ) : null;
 			$trimmed_route = rtrim( $route );
+			$is_singular = $resource_id === substr( $trimmed_route, - strlen( $resource_id ) );
 
 			// List a collection
 			if ( array( 'GET' => true ) == $endpoint['methods']
-				&& $resource_id !== substr( $trimmed_route, - strlen( $resource_id ) ) ) {
+				&& ! $is_singular ) {
 
 				$callable = function( $args, $assoc_args ) use( $route, $fields ){
 
@@ -58,7 +59,7 @@ WP_CLI::add_hook( 'after_wp_load', function(){
 
 			// Get a specific resource
 			if ( array( 'GET' => true ) == $endpoint['methods']
-				&& $resource_id === substr( $trimmed_route, - strlen( $resource_id ) ) ) {
+				&& $is_singular ) {
 				$callable = function( $args, $assoc_args ) use( $route, $fields, $resource_id ){
 
 					$defaults = array(
@@ -78,9 +79,9 @@ WP_CLI::add_hook( 'after_wp_load', function(){
 				WP_CLI::add_command( "{$parent} get", $callable );
 			}
 
-			// Delete a specific resource 
+			// Delete a specific resource
 			if ( array( 'DELETE' => true ) == $endpoint['methods']
-				&& $resource_id === substr( $trimmed_route, - strlen( $resource_id ) ) ) {
+				&& $is_singular ) {
 				$callable = function( $args, $assoc_args ) use( $route, $fields, $resource_id, $parent ){
 					$route = str_replace( $resource_id, $args[0], $route );
 					$response = rest_do_request( new WP_REST_Request( 'DELETE', $route ) );
