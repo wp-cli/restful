@@ -31,7 +31,8 @@ class Runner {
 					$api_index = self::get_api_index( $api_url );
 					if ( $api_index ) {
 						foreach( $api_index['routes'] as $route => $route_data ) {
-							if ( false === stripos( $route, '/wp/v2/comments' ) ) {
+							if ( false === stripos( $route, '/wp/v2/comments' )
+								&& false === stripos( $route, '/wp/v2/tags' ) ) {
 								continue;
 							}
 							$name = $route_data['schema']['title'];
@@ -68,7 +69,8 @@ class Runner {
 		}
 		
 		foreach( $response_data['routes'] as $route => $route_data ) {
-			if ( false === stripos( $route, '/wp/v2/comments' ) ) {
+			if ( false === stripos( $route, '/wp/v2/comments' )
+				&& false === stripos( $route, '/wp/v2/tags' ) ) {
 				continue;
 			}
 			$name = $route_data['schema']['title'];
