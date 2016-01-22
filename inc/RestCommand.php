@@ -65,7 +65,11 @@ class RestCommand {
 	 */
 	public function delete_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
-		WP_CLI::success( "Deleted {$this->name}." );
+		if ( ! empty( $body['trashed'] ) ) {
+			WP_CLI::success( "Trashed {$this->name}." );
+		} else {
+			WP_CLI::success( "Deleted {$this->name}." );
+		}
 	}
 
 	/**
@@ -112,7 +116,9 @@ class RestCommand {
 			if ( in_array( $method, array( 'POST', 'PUT' ) ) ) {
 				$request->set_body_params( $assoc_args );
 			} else {
-				$request->set_url_params( $assoc_args );
+				foreach( $assoc_args as $key => $value ) {
+					$request->set_param( $key, $value );
+				}
 			}
 			$response = rest_do_request( $request );
 			if ( $error = $response->as_error() ) {
