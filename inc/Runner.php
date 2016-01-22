@@ -211,7 +211,7 @@ class Runner {
 				);
 			}
 
-			// @todo this is a hack
+			// @todo this is a hack, see https://github.com/danielbachhuber/wp-rest-cli/issues/9
 			$synopsis[] = array(
 				'name'        => 'http',
 				'type'        => 'assoc',
