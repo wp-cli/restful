@@ -34,7 +34,11 @@ class Runner {
 							if ( false === stripos( $route, '/wp/v2/comments' ) ) {
 								continue;
 							}
-							self::register_route_commands( $route, $route_data, array( 'when' => 'before_wp_load' ) );
+							$name = $route_data['schema']['title'];
+							$rest_command = new RESTCommand( $name, $route );
+							$rest_command->set_scope( 'http' );
+							$rest_command->set_api_url( $api_url );
+							self::register_route_commands( $rest_command, $route, $route_data, array( 'when' => 'before_wp_load' ) );
 						}
 					}
 				}
@@ -63,11 +67,13 @@ class Runner {
 			return;
 		}
 		
-		foreach( $response_data['routes'] as $route => $endpoints ) {
+		foreach( $response_data['routes'] as $route => $route_data ) {
 			if ( false === stripos( $route, '/wp/v2/comments' ) ) {
 				continue;
 			}
-			self::register_route_commands( $route, $endpoints );
+			$name = $route_data['schema']['title'];
+			$rest_command = new RESTCommand( $name, $route );
+			self::register_route_commands( $rest_command, $route, $route_data );
 		}
 	}
 	
@@ -114,7 +120,7 @@ class Runner {
 	 * @param string
 	 * @param array $endpoints
 	 */
-	private function register_route_commands( $route, $route_data, $command_args = array() ) {
+	private function register_route_commands( $rest_command, $route, $route_data, $command_args = array() ) {
 		
 		$parent = "rest {$route_data['schema']['title']}";
 		$fields = array();
@@ -123,6 +129,7 @@ class Runner {
 				$fields[] = $key;
 			}
 		}
+		$rest_command->set_default_fields( $fields );
 
 		foreach( $route_data['endpoints'] as $endpoint ) {
 
@@ -166,8 +173,6 @@ class Runner {
 				continue;
 			}
 
-			$rest_command = new RestCommand( $route_data['schema']['title'], $trimmed_route, $resource_id, $fields );
-
 			$synopsis = array();
 			if ( in_array( $command, array( 'delete', 'get', 'update' ) ) ) {
 				$synopsis[] = array(
@@ -203,6 +208,13 @@ class Runner {
 					'optional'    => true,
 				);
 			}
+
+			// @todo this is a hack
+			$synopsis[] = array(
+				'name'        => 'http',
+				'type'        => 'assoc',
+				'optional'    => true,
+			);
 
 			$methods = array(
 				'list'       => 'list_items',
