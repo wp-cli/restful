@@ -80,5 +80,11 @@ Feature: Manage WordPress comments through the REST API
     When I run `wp rest comment delete 1 --user=1`
     Then STDOUT should contain:
       """
+      Success: Trashed comment.
+      """
+
+    When I run `wp rest comment delete 1 --user=1 --force=true`
+    Then STDOUT should contain:
+      """
       Success: Deleted comment.
       """

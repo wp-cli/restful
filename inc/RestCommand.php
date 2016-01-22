@@ -3,21 +3,49 @@
 namespace WP_REST_CLI;
 
 use WP_CLI;
-use WP_REST_Request;
-use WP_REST_Response;
+use WP_CLI\Utils;
 
 class RestCommand {
 
+	private $scope = 'internal';
+	private $api_url = '';
 	private $name;
 	private $route;
 	private $resource_identifier;
-	private $default_fields;
+	private $default_fields = array();
 
-	public function __construct( $name, $route, $resource_identifier = '', $default_fields = array() ) {
+	public function __construct( $name, $route ) {
 		$this->name = $name;
-		$this->route = $route;
-		$this->resource_identifier = $resource_identifier;
-		$this->default_fields = $default_fields;
+		$parsed_args = preg_match_all( '#\([^\)]+\)#', $route, $matches );
+		$this->resource_identifier = ! empty( $matches[0] ) ? array_pop( $matches[0] ) : null;
+		$this->route = rtrim( $route );
+	}
+	
+	/**
+	 * Set the scope of the REST requests
+	 *
+	 * @param string $scope
+	 */
+	public function set_scope( $scope ) {
+		$this->scope = $scope;
+	}
+	
+	/**
+	 * Set the API url for the REST requests
+	 *
+	 * @param string $api_url
+	 */
+	public function set_api_url( $api_url ) {
+		$this->api_url = $api_url;
+	}
+	
+	/**
+	 * Set the default fields on this resource
+	 *
+	 * @param array $fields
+	 */
+	public function set_default_fields( $fields ) {
+		$this->default_fields = $fields;
 	}
 
 	/**
@@ -26,9 +54,7 @@ class RestCommand {
 	 * @subcommand create
 	 */
 	public function create_item( $args, $assoc_args ) {
-		$request = new WP_REST_Request( 'POST', $this->get_base_route() );
-		$request->set_body_params( $assoc_args );
-		$response = $this->do_request( $request );
+		list( $status, $body ) = $this->do_request( 'POST', $this->get_base_route(), $assoc_args );
 		WP_CLI::success( "Created {$this->name}." );
 	}
 
@@ -38,9 +64,12 @@ class RestCommand {
 	 * @subcommand delete
 	 */
 	public function delete_item( $args, $assoc_args ) {
-		$request = new WP_REST_Request( 'DELETE', $this->get_filled_route( $args ) );
-		$response = $this->do_request( $request );
-		WP_CLI::success( "Deleted {$this->name}." );
+		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
+		if ( ! empty( $body['trashed'] ) ) {
+			WP_CLI::success( "Trashed {$this->name}." );
+		} else {
+			WP_CLI::success( "Deleted {$this->name}." );
+		}
 	}
 
 	/**
@@ -49,10 +78,9 @@ class RestCommand {
 	 * @subcommand get
 	 */
 	public function get_item( $args, $assoc_args ) {
-		$request = new WP_REST_Request( 'GET', $this->get_filled_route( $args ) );
-		$response = $this->do_request( $request );
+		list( $status, $body ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
 		$formatter = $this->get_formatter( $assoc_args );
-		$formatter->display_item( $response->get_data() );
+		$formatter->display_item( $body );
 	}
 
 	/**
@@ -61,10 +89,9 @@ class RestCommand {
 	 * @subcommand list
 	 */
 	public function list_items( $args, $assoc_args ) {
-		$request = new WP_REST_Request( 'GET', $this->get_base_route() );
-		$response = $this->do_request( $request );
+		list( $status, $body ) = $this->do_request( 'GET', $this->get_base_route(), $assoc_args );
 		$formatter = $this->get_formatter( $assoc_args );
-		$formatter->display_items( $response->get_data() );
+		$formatter->display_items( $body );
 	}
 
 	/**
@@ -73,24 +100,46 @@ class RestCommand {
 	 * @subcommand update
 	 */
 	public function update_item( $args, $assoc_args ) {
-		$request = new WP_REST_Request( 'POST', $this->get_filled_route( $args ) );
-		$request->set_body_params( $assoc_args );
-		$response = $this->do_request( $request );
+		list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), $assoc_args );
 		WP_CLI::success( "Updated {$this->name}." );
 	}
 
 	/**
 	 * Do a REST Request
 	 *
-	 * @param WP_REST_Request
-	 * @return WP_REST_Response
+	 * @param string $method
+	 * 
 	 */
-	private function do_request( $request ) {
-		$response = rest_do_request( $request );
-		if ( $error = $response->as_error() ) {
-			WP_CLI::error( $error );
+	private function do_request( $method, $route, $assoc_args ) {
+		if ( 'internal' === $this->scope ) {
+			$request = new \WP_REST_Request( $method, $route );
+			if ( in_array( $method, array( 'POST', 'PUT' ) ) ) {
+				$request->set_body_params( $assoc_args );
+			} else {
+				foreach( $assoc_args as $key => $value ) {
+					$request->set_param( $key, $value );
+				}
+			}
+			$response = rest_do_request( $request );
+			if ( $error = $response->as_error() ) {
+				WP_CLI::error( $error );
+			}
+			return array( $response->get_status(), $response->get_data() );
+		} else if ( 'http' === $this->scope ) {
+			$response = Utils\http_request( $method, rtrim( $this->api_url, '/' ) . $route, $assoc_args );
+			if ( $response->status_code >= 400 ) {
+				switch( $response->status_code ) {
+					case 404:
+						WP_CLI::error( "No {$this->name} found." );
+						break;
+					default:
+						WP_CLI::error( 'Could not complete request.' );
+						break;
+				}
+			}
+			return array( $response->status_code, json_decode( $response->body, true ) );
 		}
-		return $response;
+		WP_CLI::error( 'Invalid scope for REST command.' );
 	}
 
 	/**
