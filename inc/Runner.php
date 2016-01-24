@@ -35,8 +35,7 @@ class Runner {
 					WP_CLI::error( "Couldn't find index data from {$api_url}." );
 				}
 				foreach( $api_index['routes'] as $route => $route_data ) {
-					if ( false === stripos( $route, '/wp/v2/comments' )
-						&& false === stripos( $route, '/wp/v2/tags' ) ) {
+					if ( empty( $route_data['schema']['title'] ) ) {
 						continue;
 					}
 					$name = $route_data['schema']['title'];
@@ -71,8 +70,7 @@ class Runner {
 		}
 		
 		foreach( $response_data['routes'] as $route => $route_data ) {
-			if ( false === stripos( $route, '/wp/v2/comments' )
-				&& false === stripos( $route, '/wp/v2/tags' ) ) {
+			if ( empty( $route_data['schema']['title'] ) ) {
 				continue;
 			}
 			$name = $route_data['schema']['title'];
@@ -129,7 +127,7 @@ class Runner {
 		$parent = "rest {$route_data['schema']['title']}";
 		$fields = array();
 		foreach( $route_data['schema']['properties'] as $key => $args ) {
-			if ( in_array( 'embed', $args['context'] ) ) {
+			if ( empty( $args['context'] ) || in_array( 'embed', $args['context'] ) ) {
 				$fields[] = $key;
 			}
 		}
