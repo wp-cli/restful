@@ -10,3 +10,21 @@ Feature: Manage WordPress through endpoints locally
       """
       wp rest <command>
       """
+
+    When I run `wp help rest comment`
+    Then STDOUT should contain:
+      """
+      wp rest comment <command>
+      """
+
+    When I run `wp help rest post`
+    Then STDOUT should contain:
+      """
+      wp rest post <command>
+      """
+
+    When I run `wp help rest user`
+    Then STDOUT should contain:
+      """
+      wp rest user <command>
+      """
