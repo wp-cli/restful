@@ -27,21 +27,23 @@ class Runner {
 			list( $args, $assoc_args, $runtime_config ) = $configurator->parse_args( $global_args );
 			if ( ! empty( $assoc_args['http'] ) ) {
 				$api_url = self::auto_discover_api( $assoc_args['http'] );
-				if ( $api_url ) {
-					$api_index = self::get_api_index( $api_url );
-					if ( $api_index ) {
-						foreach( $api_index['routes'] as $route => $route_data ) {
-							if ( false === stripos( $route, '/wp/v2/comments' )
-								&& false === stripos( $route, '/wp/v2/tags' ) ) {
-								continue;
-							}
-							$name = $route_data['schema']['title'];
-							$rest_command = new RESTCommand( $name, $route );
-							$rest_command->set_scope( 'http' );
-							$rest_command->set_api_url( $api_url );
-							self::register_route_commands( $rest_command, $route, $route_data, array( 'when' => 'before_wp_load' ) );
-						}
+				if ( ! $api_url ) {
+					WP_CLI::error( "Couldn't auto-discover API endpoint from {$assoc_args['http']}." );
+				}
+				$api_index = self::get_api_index( $api_url );
+				if ( ! $api_index ) {
+					WP_CLI::error( "Couldn't find index data from {$api_url}." );
+				}
+				foreach( $api_index['routes'] as $route => $route_data ) {
+					if ( false === stripos( $route, '/wp/v2/comments' )
+						&& false === stripos( $route, '/wp/v2/tags' ) ) {
+						continue;
 					}
+					$name = $route_data['schema']['title'];
+					$rest_command = new RESTCommand( $name, $route );
+					$rest_command->set_scope( 'http' );
+					$rest_command->set_api_url( $api_url );
+					self::register_route_commands( $rest_command, $route, $route_data, array( 'when' => 'before_wp_load' ) );
 				}
 			}
 		}
