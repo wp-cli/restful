@@ -89,9 +89,18 @@ class RestCommand {
 	 * @subcommand list
 	 */
 	public function list_items( $args, $assoc_args ) {
-		list( $status, $body ) = $this->do_request( 'GET', $this->get_base_route(), $assoc_args );
-		$formatter = $this->get_formatter( $assoc_args );
-		$formatter->display_items( $body );
+		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
+			$method = 'HEAD';
+		} else {
+			$method = 'GET';
+		}
+		list( $status, $body, $headers ) = $this->do_request( $method, $this->get_base_route(), $assoc_args );
+		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
+			echo (int) $headers['X-WP-Total'];
+		} else {
+			$formatter = $this->get_formatter( $assoc_args );
+			$formatter->display_items( $body );
+		}
 	}
 
 	/**
@@ -124,7 +133,7 @@ class RestCommand {
 			if ( $error = $response->as_error() ) {
 				WP_CLI::error( $error );
 			}
-			return array( $response->get_status(), $response->get_data() );
+			return array( $response->get_status(), $response->get_data(), $response->get_headers() );
 		} else if ( 'http' === $this->scope ) {
 			$response = Utils\http_request( $method, rtrim( $this->api_url, '/' ) . $route, $assoc_args );
 			if ( $response->status_code >= 400 ) {
@@ -137,7 +146,7 @@ class RestCommand {
 						break;
 				}
 			}
-			return array( $response->status_code, json_decode( $response->body, true ) );
+			return array( $response->status_code, json_decode( $response->body, true ), $response->headers );
 		}
 		WP_CLI::error( 'Invalid scope for REST command.' );
 	}
