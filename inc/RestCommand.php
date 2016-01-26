@@ -136,14 +136,19 @@ class RestCommand {
 			return array( $response->get_status(), $response->get_data(), $response->get_headers() );
 		} else if ( 'http' === $this->scope ) {
 			$response = Utils\http_request( $method, rtrim( $this->api_url, '/' ) . $route, $assoc_args );
+			$body = json_decode( $response->body, true );
 			if ( $response->status_code >= 400 ) {
-				switch( $response->status_code ) {
-					case 404:
-						WP_CLI::error( "No {$this->name} found." );
-						break;
-					default:
-						WP_CLI::error( 'Could not complete request.' );
-						break;
+				if ( ! empty( $body['message'] ) ) {
+					WP_CLI::error( $body['message'] . ' ' . json_encode( array( 'status' => $response->status_code ) ) );
+				} else {
+					switch( $response->status_code ) {
+						case 404:
+							WP_CLI::error( "No {$this->name} found." );
+							break;
+						default:
+							WP_CLI::error( 'Could not complete request.' );
+							break;
+					}
 				}
 			}
 			return array( $response->status_code, json_decode( $response->body, true ), $response->headers );
