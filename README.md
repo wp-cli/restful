@@ -1,11 +1,13 @@
 wp-rest-cli
 ===========
 
-A [Kickstarter-backed project](http://wp-cli.org/restful/) to unlock the potential of the WP REST API at the command line.
+A [Kickstarter-backed project](http://wp-cli.org/restful/) by @danielbachhuber to unlock the potential of the WP REST API at the command line.
 
-**Warning:** This project is at a very early stage. Treat it as an experiment, and understand that breaking changes will be made without warning.
+**Warning:** This project is at a very early stage. Treat it as an experiment, and understand that breaking changes will be made without warning. Using wp-rest-cli requires the latest nightly build of WP-CLI.
 
 [![Build Status](https://travis-ci.org/danielbachhuber/wp-rest-cli.svg?branch=master)](https://travis-ci.org/danielbachhuber/wp-rest-cli)
+
+Quick links: [Overview](#overview) | [Installing](#installing) | [Contributing](#Contributing)
 
 ## Overview
 
@@ -41,4 +43,14 @@ For example:
     | taxonomy | post_tag                                                          |
     +----------+-------------------------------------------------------------------+
     
-There are many things wp-rest-cli can't yet do. Please [review the issue backlog](https://github.com/danielbachhuber/wp-rest-cli/issues), and open a new issue if you don't see your question already listed.
+There are many things wp-rest-cli can't yet do. Please [review the issue backlog](https://github.com/danielbachhuber/wp-rest-cli/issues), and open a new issue if you can't find an exising issue for your topic.
+
+## Installing
+
+wp-rest-cli requires the latest nightly version of WP-CLI. Update with `wp cli update --nightly`.
+
+Once you've done so, you can install wp-rest-cli with `wp package install danielbachhuber/wp-rest-cli`.
+
+## Contributing
+
+Code and ideas are more than welcome. Please [open an issue](https://github.com/danielbachhuber/wp-rest-cli/issues) with questions, feedback, and violent dissent. Pull requests are expected to include test coverage.
