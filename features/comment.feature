@@ -55,7 +55,7 @@ Feature: Manage WordPress comments through the REST API
       {"content":{"rendered":"<p>Hello World, again<\/p>\n"}}
       """
 
-  Scenario: Delete a comment
+  Scenario: Update a comment
     When I try `wp rest comment update 1 --content="Hello World"`
     Then STDERR should contain:
       """
@@ -78,7 +78,7 @@ Feature: Manage WordPress comments through the REST API
     When I try `wp rest comment delete 1`
     Then STDERR should contain:
       """
-      Error: Sorry, you can not edit this comment
+      Error: Sorry, you can not delete this comment
       """
 
     When I run `wp rest comment delete 1 --user=1`
