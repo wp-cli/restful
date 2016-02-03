@@ -3,7 +3,7 @@ wp-rest-cli
 
 A [Kickstarter-backed project](http://wp-cli.org/restful/) by @danielbachhuber to unlock the potential of the WP REST API at the command line.
 
-**Warning:** This project is at a very early stage. Treat it as an experiment, and understand that breaking changes will be made without warning. The sky may also fall on your head. Using wp-rest-cli requires the latest nightly build of WP-CLI.
+**Warning:** This project is at a very early stage. Treat it as an experiment, and understand that breaking changes will be made without warning. The sky may also fall on your head. Using wp-rest-cli requires the latest nightly build of WP-CLI, which you can install with `wp cli update --nightly`.
 
 [![Build Status](https://travis-ci.org/danielbachhuber/wp-rest-cli.svg?branch=master)](https://travis-ci.org/danielbachhuber/wp-rest-cli)
 
