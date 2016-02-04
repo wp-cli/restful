@@ -3,7 +3,7 @@ wp-rest-cli
 
 Unlock the potential of the WP REST API at the command line. Project backed by [Pressed](https://www.pressed.net/), [Chris Lema](https://chrislema.com/), [Human Made](https://hmn.md/), [Pagely](https://pagely.com/), [Pantheon](https://pantheon.io/) and many others. [Learn more →](http://wp-cli.org/restful/)
 
-**Warning:** This project is at a very early stage. Treat it as an experiment, and understand that breaking changes will be made without warning. The sky may also fall on your head. Using wp-rest-cli requires the latest nightly build of WP-CLI, which you can install with `wp cli update --nightly`.
+**Warning:** This project is at a very early stage. Treat it as an experiment, and understand that breaking changes will be made without warning. The sky may also fall on your head. Using wp-rest-cli requires the latest nightly build of [WP-CLI](http://wp-cli.org/), which you can install with `wp cli update --nightly`.
 
 [![Build Status](https://travis-ci.org/danielbachhuber/wp-rest-cli.svg?branch=master)](https://travis-ci.org/danielbachhuber/wp-rest-cli)
 
@@ -11,7 +11,7 @@ Quick links: [Overview](#overview) | [Installing](#installing) | [Contributing](
 
 ## Overview
 
-wp-rest-cli makes [WP REST API](http://v2.wp-api.org/) endpoints available as WP-CLI commands. It does so by:
+wp-rest-cli makes [WP REST API](http://v2.wp-api.org/) endpoints available as [WP-CLI](http://wp-cli.org/) commands. It does so by:
 
 * Auto-discovering WP REST API endpoints from any WordPress site running WordPress 4.4 or higher.
 * Registering WP-CLI commands for the endpoints it understands.
