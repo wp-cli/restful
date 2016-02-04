@@ -13,12 +13,12 @@ Quick links: [Overview](#overview) | [Installing](#installing) | [Contributing](
 
 wp-rest-cli makes [WP REST API](http://v2.wp-api.org/) endpoints available as WP-CLI commands. It does so by:
 
-* Auto-discovering those endpoints from any WordPress site (local or remote).
+* Auto-discovering WP REST API endpoints from any WordPress site running WordPress 4.4 or higher.
 * Registering WP-CLI commands for the endpoints it understands.
 
 For example:
 
-    $ wp --http=demo.wp-api.org rest
+    $ wp rest
     usage: wp rest attachment <command>
        or: wp rest category <command>
        or: wp rest comment <command>
@@ -41,7 +41,9 @@ For example:
       "slug": "dolor-in-sunt-placeat-molestiae-ipsam",
       "taxonomy": "post_tag"
     }
-    
+
+Notice how you can use `--http=<domain>` to interact with a remote WordPress site. `--http=<domain>` must be supplied as the second argument to be used. Without it, wp-rest-cli will look for endpoints of a WordPress site in a directory specified by `--path=<path>` (or the current directory, if `--path=<path` isn't supplied).
+
 There are many things wp-rest-cli can't yet do. Please [review the issue backlog](https://github.com/danielbachhuber/wp-rest-cli/issues), and open a new issue if you can't find an exising issue for your topic.
 
 ## Installing
