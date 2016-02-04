@@ -32,16 +32,15 @@ For example:
        or: wp rest taxonomy <command>
        or: wp rest type <command>
        or: wp rest user <command>
-    $ wp --http=demo.wp-api.org rest tag get 65
-    +----------+-------------------------------------------------------------------+
-    | Field    | Value                                                             |
-    +----------+-------------------------------------------------------------------+
-    | id       | 65                                                                |
-    | link     | http://demo.wp-api.org/tag/dolor-in-sunt-placeat-molestiae-ipsam/ |
-    | name     | Dolor in sunt placeat molestiae ipsam                             |
-    | slug     | dolor-in-sunt-placeat-molestiae-ipsam                             |
-    | taxonomy | post_tag                                                          |
-    +----------+-------------------------------------------------------------------+
+
+    $ wp --http=demo.wp-api.org rest tag get 65 --format=json
+    {
+      "id": 65,
+      "link": "http://demo.wp-api.org/tag/dolor-in-sunt-placeat-molestiae-ipsam/",
+      "name": "Dolor in sunt placeat molestiae ipsam",
+      "slug": "dolor-in-sunt-placeat-molestiae-ipsam",
+      "taxonomy": "post_tag"
+    }
     
 There are many things wp-rest-cli can't yet do. Please [review the issue backlog](https://github.com/danielbachhuber/wp-rest-cli/issues), and open a new issue if you can't find an exising issue for your topic.
 
