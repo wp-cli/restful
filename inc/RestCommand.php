@@ -95,11 +95,16 @@ class RestCommand {
 			$method = 'GET';
 		}
 		list( $status, $body, $headers ) = $this->do_request( $method, $this->get_base_route(), $assoc_args );
+		if ( ! empty( $assoc_args['format'] ) && 'ids' === $assoc_args['format'] ) {
+			$items = array_column( $body, 'id' );
+		} else {
+			$items = $body;
+		}
 		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
 			echo (int) $headers['X-WP-Total'];
 		} else {
 			$formatter = $this->get_formatter( $assoc_args );
-			$formatter->display_items( $body );
+			$formatter->display_items( $items );
 		}
 	}
 
