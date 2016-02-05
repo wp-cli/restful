@@ -25,6 +25,12 @@ Feature: Manage WordPress comments through the REST API
     | id     | author_name    |
     | 1      | Mr WordPress   |
 
+    When I run `wp rest comment list --format=ids`
+    Then STDOUT should be:
+      """
+      1
+      """
+
   Scenario: Get the count of WordPress comments
     When I run `wp comment generate --count=10`
     Then STDERR should be empty
