@@ -34,6 +34,8 @@ class Runner {
 				if ( ! $api_index ) {
 					WP_CLI::error( "Couldn't find index data from {$api_url}." );
 				}
+				$help_command = new HelpCommand( $api_index );
+				WP_CLI::add_command( 'rest help', array( $help_command, 'help' ) );
 				foreach( $api_index['routes'] as $route => $route_data ) {
 					if ( empty( $route_data['schema']['title'] ) ) {
 						continue;
@@ -68,7 +70,9 @@ class Runner {
 		if ( empty( $response_data ) ) {
 			return;
 		}
-		
+
+		$help_command = new HelpCommand( $response_data );
+		WP_CLI::add_command( 'rest help', array( $help_command, 'help' ) );
 		foreach( $response_data['routes'] as $route => $route_data ) {
 			if ( empty( $route_data['schema']['title'] ) ) {
 				continue;
