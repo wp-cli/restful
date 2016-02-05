@@ -41,7 +41,22 @@ class HelpCommand {
 			foreach( $schemas as $schema ) {
 				$output[] = "## {$schema['title']} ({$schema['type']})";
 				foreach( $schema['properties'] as $key => $args ) {
-					$output[] = "+ {$key}";
+					$bits = array();
+					if ( ! empty( $args['type'] ) ) {
+						$type = $args['type'];
+						if ( ! empty( $args['format'] ) ) {
+							$type .= '[' . $args['format'] . ']';
+						}
+						$bits[] = $type;
+					}
+					if ( ! empty( $args['required'] ) ) {
+						$bits[] = 'required';
+					}
+					if ( ! empty( $bits ) ) {
+						$bits = ' (' . implode( ', ', $bits ) . ')';
+					}
+					$description = ! empty( $args['description'] ) ? ' - ' . $args['description'] : '';
+					$output[] = "+ {$key}{$bits}{$description}";
 				}
 				$output[] = '';
 			}
