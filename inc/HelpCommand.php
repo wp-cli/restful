@@ -28,13 +28,8 @@ class HelpCommand {
 	 * Display the index as API blueprint
 	 */
 	private function display_index_as_api_blueprint() {
-		$schemas = array();
-		foreach( $this->api_index['routes'] as $route => $data ) {
-			if ( ! empty( $data['schema'] ) ) {
-				$schemas[ $data['schema']['title'] ] = $data['schema'];
-			}
-		}
 		$output = array();
+		$schemas = $this->get_schemas();
 		if ( ! empty( $schemas ) ) {
 			$output[] = '# Data Structures';
 			$output[] = '';
@@ -62,6 +57,16 @@ class HelpCommand {
 			}
 		}
 		echo implode( PHP_EOL, $output );
+	}
+
+	private function get_schemas() {
+		$schemas = array();
+		foreach( $this->api_index['routes'] as $route => $data ) {
+			if ( ! empty( $data['schema'] ) ) {
+				$schemas[ $data['schema']['title'] ] = $data['schema'];
+			}
+		}
+		return $schemas;
 	}
 
 }
