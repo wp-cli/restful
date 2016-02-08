@@ -39,7 +39,7 @@ class Runner {
 						continue;
 					}
 					$name = $route_data['schema']['title'];
-					$rest_command = new RESTCommand( $name, $route );
+					$rest_command = new RESTCommand( $name, $route, $route_data['schema'] );
 					$rest_command->set_scope( 'http' );
 					$rest_command->set_api_url( $api_url );
 					self::register_route_commands( $rest_command, $route, $route_data, array( 'when' => 'before_wp_load' ) );
@@ -74,7 +74,7 @@ class Runner {
 				continue;
 			}
 			$name = $route_data['schema']['title'];
-			$rest_command = new RESTCommand( $name, $route );
+			$rest_command = new RESTCommand( $name, $route, $route_data['schema'] );
 			self::register_route_commands( $rest_command, $route, $route_data );
 		}
 	}
@@ -125,13 +125,6 @@ class Runner {
 	private function register_route_commands( $rest_command, $route, $route_data, $command_args = array() ) {
 		
 		$parent = "rest {$route_data['schema']['title']}";
-		$fields = array();
-		foreach( $route_data['schema']['properties'] as $key => $args ) {
-			if ( empty( $args['context'] ) || in_array( 'embed', $args['context'] ) ) {
-				$fields[] = $key;
-			}
-		}
-		$rest_command->set_default_fields( $fields );
 
 		foreach( $route_data['endpoints'] as $endpoint ) {
 
