@@ -58,7 +58,7 @@ class RestCommand {
 	 */
 	public function delete_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
-		if ( ! empty( $body['trashed'] ) ) {
+		if ( empty( $assoc_args['force'] ) ) {
 			WP_CLI::success( "Trashed {$this->name}." );
 		} else {
 			WP_CLI::success( "Deleted {$this->name}." );
