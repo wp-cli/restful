@@ -52,6 +52,8 @@ wp-rest-cli requires the latest nightly version of WP-CLI. Update with `wp cli u
 
 Once you've done so, you can install wp-rest-cli with `wp package install danielbachhuber/wp-rest-cli`.
 
+wp-rest-cli also requires the [latest WP REST API beta](https://wordpress.org/plugins/rest-api/) installed and activated on whichever WordPress you'd like to interact with. Older betas are unsupported — please keep up to date.
+
 ## Contributing
 
 Code and ideas are more than welcome. Please [open an issue](https://github.com/danielbachhuber/wp-rest-cli/issues) with questions, feedback, and violent dissent. Pull requests are expected to include test coverage.
