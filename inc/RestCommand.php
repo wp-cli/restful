@@ -12,13 +12,15 @@ class RestCommand {
 	private $name;
 	private $route;
 	private $resource_identifier;
-	private $default_fields = array();
+	private $schema;
+	private $default_context = '';
 
-	public function __construct( $name, $route ) {
+	public function __construct( $name, $route, $schema ) {
 		$this->name = $name;
 		$parsed_args = preg_match_all( '#\([^\)]+\)#', $route, $matches );
 		$this->resource_identifier = ! empty( $matches[0] ) ? array_pop( $matches[0] ) : null;
 		$this->route = rtrim( $route );
+		$this->schema = $schema;
 	}
 	
 	/**
@@ -38,15 +40,6 @@ class RestCommand {
 	public function set_api_url( $api_url ) {
 		$this->api_url = $api_url;
 	}
-	
-	/**
-	 * Set the default fields on this resource
-	 *
-	 * @param array $fields
-	 */
-	public function set_default_fields( $fields ) {
-		$this->default_fields = $fields;
-	}
 
 	/**
 	 * Create a new item.
@@ -65,7 +58,7 @@ class RestCommand {
 	 */
 	public function delete_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
-		if ( ! empty( $body['trashed'] ) ) {
+		if ( empty( $assoc_args['force'] ) ) {
 			WP_CLI::success( "Trashed {$this->name}." );
 		} else {
 			WP_CLI::success( "Deleted {$this->name}." );
@@ -175,9 +168,29 @@ class RestCommand {
 				$fields = $assoc_args['fields'];
 			}
 		} else {
-			$fields = $this->default_fields;
+			if ( ! empty( $assoc_args['context'] ) ) {
+				$fields = $this->get_context_fields( $assoc_args['context'] );
+			} else {
+				$fields = $this->get_context_fields( 'embed' );
+			}
 		}
 		return new \WP_CLI\Formatter( $assoc_args, $fields );
+	}
+
+	/**
+	 * Get a list of fields present in a given context
+	 *
+	 * @param string $context
+	 * @return array
+	 */
+	private function get_context_fields( $context ) {
+		$fields = array();
+		foreach( $this->schema['properties'] as $key => $args ) {
+			if ( empty( $args['context'] ) || in_array( $context, $args['context'] ) ) {
+				$fields[] = $key;
+			}
+		}
+		return $fields;
 	}
 
 	/**
