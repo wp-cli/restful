@@ -31,7 +31,12 @@ Feature: Manage WordPress comments through the REST API
       1
       """
 
-  Scenario: List comments with view context
+  Scenario: List comments with different contexts
+    When I run `wp rest comment list --format=csv`
+    Then STDOUT should contain:
+      """
+      id,author,author_avatar_urls,author_name,author_url,content,date,link
+      """
     When I run `wp rest comment list --context=view --format=csv`
     Then STDOUT should contain:
       """
