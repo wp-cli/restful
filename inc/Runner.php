@@ -180,12 +180,19 @@ class Runner {
 
 			if ( ! empty( $endpoint['args'] ) ) {
 				foreach( $endpoint['args'] as $name => $args ) {
-					$synopsis[] = array(
+					$arg_reg = array(
 						'name'        => $name,
 						'type'        => 'assoc',
 						'description' => ! empty( $args['description'] ) ? $args['description'] : '',
 						'optional'    => empty( $args['required'] ) ? true : false,
 					);
+					foreach( array( 'enum', 'default' ) as $key ) {
+						if ( isset( $args[ $key ] ) ) {
+							$new_key = 'enum' === $key ? 'options' : $key;
+							$arg_reg[ $new_key ] = $args[ $key ];
+						}
+					}
+					$synopsis[] = $arg_reg;
 				}
 			}
 
