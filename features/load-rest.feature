@@ -28,3 +28,21 @@ Feature: Manage WordPress through endpoints locally
       """
       wp rest user <command>
       """
+
+  Scenario: Debug flag should identify errored parts of the bootstrap process
+    Given a wp-content/mu-plugins/rest-endpoint.php file:
+      """
+      <?php
+      add_action( 'rest_api_init', function() {
+        register_rest_route( 'myplugin/v1', '/books', array(
+          'methods' => 'GET',
+          'callback' => '__return_true',
+        ) );
+      });
+      """
+
+    When I run `wp rest --debug`
+    Then STDERR should contain:
+      """
+      Debug: No schema title found for /myplugin/v1/books, skipping REST command registration.
+      """

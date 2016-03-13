@@ -36,6 +36,7 @@ class Runner {
 				}
 				foreach( $api_index['routes'] as $route => $route_data ) {
 					if ( empty( $route_data['schema']['title'] ) ) {
+						WP_CLI::debug( "No schema title found for {$route}, skipping REST command registration." );
 						continue;
 					}
 					$name = $route_data['schema']['title'];
@@ -71,6 +72,7 @@ class Runner {
 		
 		foreach( $response_data['routes'] as $route => $route_data ) {
 			if ( empty( $route_data['schema']['title'] ) ) {
+				WP_CLI::debug( "No schema title found for {$route}, skipping REST command registration." );
 				continue;
 			}
 			$name = $route_data['schema']['title'];
