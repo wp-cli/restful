@@ -19,6 +19,21 @@ Feature: Manage WordPress comments through the REST API
       update
       """
 
+    When I run `wp rest comment list --help`
+    Then STDOUT should contain:
+      """
+      [--context=<context>]
+          Scope under which the request is made; determines fields present in
+          response.
+          ---
+          default: view
+          options:
+            - view
+            - embed
+            - edit
+          ---
+      """
+
   Scenario: List all WordPress comments
     When I run `wp rest comment list --fields=id,author_name`
     Then STDOUT should be a table containing rows:
