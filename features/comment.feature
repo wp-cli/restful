@@ -46,16 +46,22 @@ Feature: Manage WordPress comments through the REST API
       1
       """
 
+    When I run `wp rest comment list --format=body`
+    Then STDOUT should be JSON containing:
+      """
+      [{"author_name":"Mr WordPress"}]
+      """
+
   Scenario: List comments with different contexts
     When I run `wp rest comment list --format=csv`
     Then STDOUT should contain:
       """
-      id,author,author_avatar_urls,author_name,author_url,content,date,link
+      id,author,author_name,author_url,content,date,link,parent,type,author_avatar_urls
       """
     When I run `wp rest comment list --context=view --format=csv`
     Then STDOUT should contain:
       """
-      id,author,author_avatar_urls,author_name,author_url,content,date,date_gmt,link,parent,post,status,type
+      id,author,author_name,author_url,content,date,date_gmt,link,parent,post,status,type,author_avatar_urls
       """
 
   Scenario: Get the count of WordPress comments
@@ -74,6 +80,12 @@ Feature: Manage WordPress comments through the REST API
     | Field       | Value         |
     | author_name | Mr WordPress  |
     | id          | 1             |
+
+    When I run `wp rest comment get 1 --format=body`
+    Then STDOUT should be JSON containing:
+      """
+      {"author_name":"Mr WordPress"}
+      """
 
   Scenario: Create a comment
     When I run `wp rest comment create --post=1 --content="Hello World, again" --user=1`
