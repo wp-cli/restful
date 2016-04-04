@@ -46,7 +46,7 @@ Feature: Manage WordPress comments through the REST API
       1
       """
 
-    When I run `wp rest comment list --format=raw`
+    When I run `wp rest comment list --format=body`
     Then STDOUT should be JSON containing:
       """
       [{"author_name":"Mr WordPress"}]
@@ -81,7 +81,7 @@ Feature: Manage WordPress comments through the REST API
     | author_name | Mr WordPress  |
     | id          | 1             |
 
-    When I run `wp rest comment get 1 --format=raw`
+    When I run `wp rest comment get 1 --format=body`
     Then STDOUT should be JSON containing:
       """
       {"author_name":"Mr WordPress"}
