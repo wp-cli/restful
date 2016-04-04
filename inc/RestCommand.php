@@ -72,8 +72,12 @@ class RestCommand {
 	 */
 	public function get_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
-		$formatter = $this->get_formatter( $assoc_args );
-		$formatter->display_item( $body );
+		if ( ! empty( $assoc_args['format'] ) && 'raw' === $assoc_args['format'] ) {
+			echo json_encode( $body );
+		} else {
+			$formatter = $this->get_formatter( $assoc_args );
+			$formatter->display_item( $body );
+		}
 	}
 
 	/**
@@ -95,6 +99,8 @@ class RestCommand {
 		}
 		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
 			echo (int) $headers['X-WP-Total'];
+		} else if ( ! empty( $assoc_args['format'] ) && 'raw' === $assoc_args['format'] ) {
+			echo json_encode( $body );
 		} else {
 			$formatter = $this->get_formatter( $assoc_args );
 			$formatter->display_items( $items );

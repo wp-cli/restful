@@ -46,6 +46,12 @@ Feature: Manage WordPress comments through the REST API
       1
       """
 
+    When I run `wp rest comment list --format=raw`
+    Then STDOUT should be JSON containing:
+      """
+      [{"author_name":"Mr WordPress"}]
+      """
+
   Scenario: List comments with different contexts
     When I run `wp rest comment list --format=csv`
     Then STDOUT should contain:
@@ -74,6 +80,12 @@ Feature: Manage WordPress comments through the REST API
     | Field       | Value         |
     | author_name | Mr WordPress  |
     | id          | 1             |
+
+    When I run `wp rest comment get 1 --format=raw`
+    Then STDOUT should be JSON containing:
+      """
+      {"author_name":"Mr WordPress"}
+      """
 
   Scenario: Create a comment
     When I run `wp rest comment create --post=1 --content="Hello World, again" --user=1`
