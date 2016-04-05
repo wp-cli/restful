@@ -3,6 +3,7 @@
  * Use WP-API at the command line.
  */
 
+require_once __DIR__ . '/inc/HelpCommand.php';
 require_once __DIR__ . '/inc/RestCommand.php';
 require_once __DIR__ . '/inc/Runner.php';
 
