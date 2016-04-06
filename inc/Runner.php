@@ -8,7 +8,30 @@ use WP_REST_Request;
 use WP_REST_Server;
 
 class Runner {
-	
+
+	/**
+	 * Deregister core CRUD commands
+	 *
+	 */
+	public static function deregister_core_commands() {
+		$root_command = WP_CLI::get_root_command();
+		if ( ! method_exists( $root_command, 'remove_subcommand' ) ) {
+			return;
+		}
+		$commands_to_deregister = array(
+			'comment',
+			'post',
+			'term',
+			'menu',
+			'post-type',
+			'taxonomy',
+			'user',
+		);
+		foreach( $commands_to_deregister as $cmd ) {
+			$root_command->remove_subcommand( $cmd );
+		}
+	}
+
 	/**
 	 * When --http=domain.com is passed as global arg, register REST for it
 	 */
