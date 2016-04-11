@@ -133,7 +133,19 @@ class RestCommand {
 					$request->set_param( $key, $value );
 				}
 			}
+			if ( defined( 'SAVEQUERIES' ) && SAVEQUERIES ) {
+				$GLOBALS['wpdb']->queries = array();
+			}
 			$response = rest_do_request( $request );
+			if ( defined( 'SAVEQUERIES' ) && SAVEQUERIES ) {
+				$query_count = count( $GLOBALS['wpdb']->queries );
+				$query_total_time = 0;
+				foreach( $GLOBALS['wpdb']->queries as $query ) {
+					$query_total_time += $query[1];
+				}
+				$query_total_time = round( $query_total_time, 3 );
+				WP_CLI::debug( "REST command executed {$query_count} queries in {$query_total_time} seconds" );
+			}
 			if ( $error = $response->as_error() ) {
 				WP_CLI::error( $error );
 			}
