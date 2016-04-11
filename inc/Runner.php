@@ -228,9 +228,19 @@ class Runner {
 				'update'     => 'update_item',
 			);
 
+			$before_invoke = false;
+			if ( empty( $command_args['when'] ) ) {
+				$before_invoke = function() {
+					if ( ! defined( 'SAVEQUERIES' ) ) {
+						define( 'SAVEQUERIES', true );
+					}
+				};
+			}
+
 			WP_CLI::add_command( "{$parent} {$command}", array( $rest_command, $methods[ $command ] ), array(
-				'synopsis' => $synopsis,
-				'when'     => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
+				'synopsis'      => $synopsis,
+				'when'          => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
+				'before_invoke' => $before_invoke,
 			) );
 		}
 	}
