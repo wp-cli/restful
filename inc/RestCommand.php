@@ -134,13 +134,20 @@ class RestCommand {
 				}
 			}
 			if ( defined( 'SAVEQUERIES' ) && SAVEQUERIES ) {
-				$GLOBALS['wpdb']->queries = array();
+				$original_queries = is_array( $GLOBALS['wpdb']->queries ) ? array_keys( $GLOBALS['wpdb']->queries ) : array();
 			}
 			$response = rest_do_request( $request );
 			if ( defined( 'SAVEQUERIES' ) && SAVEQUERIES ) {
-				$query_count = count( $GLOBALS['wpdb']->queries );
+				$performed_queries = array();
+				foreach( $GLOBALS['wpdb']->queries as $key => $query ) {
+					if ( in_array( $key, $original_queries ) ) {
+						continue;
+					}
+					$performed_queries[] = $query;
+				}
+				$query_count = count( $performed_queries );
 				$query_total_time = 0;
-				foreach( $GLOBALS['wpdb']->queries as $query ) {
+				foreach( $performed_queries as $query ) {
 					$query_total_time += $query[1];
 				}
 				$query_total_time = round( $query_total_time, 3 );
