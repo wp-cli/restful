@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace WP_REST_CLI;
 
@@ -8,12 +8,12 @@ use WP_REST_Request;
 use WP_REST_Server;
 
 class Runner {
-	
+
 	/**
 	 * When --http=domain.com is passed as global arg, register REST for it
 	 */
 	public static function load_remote_commands() {
-		
+
 		$global_args = array();
 		foreach( array_slice( $GLOBALS['argv'], 1 ) as $maybe_arg ) {
 			if ( 0 === strpos( $maybe_arg, '--' ) ) {
@@ -47,9 +47,9 @@ class Runner {
 				}
 			}
 		}
-		
+
 	}
-	
+
 	public static function after_wp_load() {
 		if ( ! class_exists( 'WP_REST_Server' ) ) {
 			return;
@@ -61,7 +61,7 @@ class Runner {
 
 		$wp_rest_server = new WP_REST_Server;
 		do_action( 'rest_api_init', $wp_rest_server );
-		
+
 		$request = new WP_REST_Request( 'GET', '/' );
 		$request->set_param( 'context', 'help' );
 		$response = $wp_rest_server->dispatch( $request );
@@ -69,7 +69,7 @@ class Runner {
 		if ( empty( $response_data ) ) {
 			return;
 		}
-		
+
 		foreach( $response_data['routes'] as $route => $route_data ) {
 			if ( empty( $route_data['schema']['title'] ) ) {
 				WP_CLI::debug( "No schema title found for {$route}, skipping REST command registration." );
@@ -80,7 +80,7 @@ class Runner {
 			self::register_route_commands( $rest_command, $route, $route_data );
 		}
 	}
-	
+
 	/**
 	 * Auto-discover the WP-API index from a given URL
 	 *
@@ -101,7 +101,7 @@ class Runner {
 		}
 		return trim( $bits[0], '<>' );
 	}
-	
+
 	/**
 	 * Get the index data from an API url
 	 *
@@ -115,9 +115,9 @@ class Runner {
 		if ( empty( $response->body ) ) {
 			return false;
 		}
-		return json_decode( $response->body, true ); 
+		return json_decode( $response->body, true );
 	}
-	
+
 	/**
 	 * Register WP-CLI commands for all endpoints on a route
 	 *
@@ -125,7 +125,7 @@ class Runner {
 	 * @param array $endpoints
 	 */
 	private function register_route_commands( $rest_command, $route, $route_data, $command_args = array() ) {
-		
+
 		$parent = "rest {$route_data['schema']['title']}";
 
 		foreach( $route_data['endpoints'] as $endpoint ) {
@@ -244,5 +244,5 @@ class Runner {
 			) );
 		}
 	}
-	
+
 }
