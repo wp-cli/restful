@@ -22,7 +22,7 @@ class RestCommand {
 		$this->route = rtrim( $route );
 		$this->schema = $schema;
 	}
-	
+
 	/**
 	 * Set the scope of the REST requests
 	 *
@@ -31,7 +31,7 @@ class RestCommand {
 	public function set_scope( $scope ) {
 		$this->scope = $scope;
 	}
-	
+
 	/**
 	 * Set the API url for the REST requests
 	 *
@@ -121,7 +121,7 @@ class RestCommand {
 	 * Do a REST Request
 	 *
 	 * @param string $method
-	 * 
+	 *
 	 */
 	private function do_request( $method, $route, $assoc_args ) {
 		if ( 'internal' === $this->scope ) {
