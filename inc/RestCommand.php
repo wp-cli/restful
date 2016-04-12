@@ -151,7 +151,7 @@ class RestCommand {
 					$query_total_time += $query[1];
 				}
 				$query_total_time = round( $query_total_time, 3 );
-				WP_CLI::debug( "REST command executed {$query_count} queries in {$query_total_time} seconds" );
+				WP_CLI::debug( "REST command executed {$query_count} queries in {$query_total_time} seconds", 'rest' );
 			}
 			if ( $error = $response->as_error() ) {
 				WP_CLI::error( $error );
