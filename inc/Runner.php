@@ -228,8 +228,8 @@ class Runner {
 				'update'     => 'update_item',
 			);
 
-			$before_invoke = false;
-			if ( empty( $command_args['when'] ) ) {
+			$before_invoke = null;
+			if ( empty( $command_args['when'] ) && WP_CLI::get_config( 'debug' ) ) {
 				$before_invoke = function() {
 					if ( ! defined( 'SAVEQUERIES' ) ) {
 						define( 'SAVEQUERIES', true );
