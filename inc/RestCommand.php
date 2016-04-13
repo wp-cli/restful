@@ -2,6 +2,7 @@
 
 namespace WP_REST_CLI;
 
+use Spyc;
 use WP_CLI;
 use WP_CLI\Utils;
 
@@ -115,6 +116,54 @@ class RestCommand {
 	public function update_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), $assoc_args );
 		WP_CLI::success( "Updated {$this->name}." );
+	}
+
+	/**
+	 * Open an existing item in the editor
+	 *
+	 * @subcommand edit
+	 */
+	public function edit_item( $args, $assoc_args ) {
+		$assoc_args['context'] = 'edit';
+		list( $status, $options_body ) = $this->do_request( 'OPTIONS', $this->get_filled_route( $args ), $assoc_args );
+		if ( empty( $options_body['schema'] ) ) {
+			WP_CLI::error( "Cannot edit - no schema found for resource." );
+		}
+		$schema = $options_body['schema'];
+		list( $status, $resource_fields ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
+		$editable_fields = array();
+		foreach( $resource_fields as $key => $value ) {
+			if ( ! isset( $schema['properties'][ $key ] ) || ! empty( $schema['properties'][ $key ]['readonly'] ) ) {
+				continue;
+			}
+			$properties = $schema['properties'][ $key ];
+			if ( isset( $properties['properties'] ) ) {
+				$parent_key = $key;
+				$properties = $properties['properties'];
+				foreach( $value as $key => $value ) {
+					if ( isset( $properties[ $key ] ) && empty( $properties[ $key ]['readonly'] ) ) {
+						if ( ! isset( $editable_fields[ $parent_key ] ) ) {
+							$editable_fields[ $parent_key ] = array();
+						}
+						$editable_fields[ $parent_key ][ $key ] = $value;
+					}
+				}
+				continue;
+			}
+			if ( empty( $properties['readonly'] ) ) {
+				$editable_fields[ $key ] = $value;
+			}
+		}
+		if ( empty( $editable_fields ) ) {
+			WP_CLI::error( "Cannot edit - no editable fields found on schema." );
+		}
+		$ret = Utils\launch_editor_for_input( Spyc::YAMLDump( $editable_fields ), sprintf( 'Editing %s %s', $schema['title'], $args[0] ) );
+		if ( false === $ret ) {
+			WP_CLI::warning( "No edits made." );
+		} else {
+			list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ),Spyc::YAMLLoadString( $ret ) );
+			WP_CLI::success( "Updated {$schema['title']} {$args[0]}." );
+		}
 	}
 
 	/**

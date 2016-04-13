@@ -128,6 +128,7 @@ class Runner {
 
 		$parent = "rest {$route_data['schema']['title']}";
 
+		$supported_commands = array();
 		foreach( $route_data['endpoints'] as $endpoint ) {
 
 			$parsed_args = preg_match_all( '#\([^\)]+\)#', $route, $matches );
@@ -135,40 +136,39 @@ class Runner {
 			$trimmed_route = rtrim( $route );
 			$is_singular = $resource_id === substr( $trimmed_route, - strlen( $resource_id ) );
 
-			$command = $method = '';
+			$command = '';
 			// List a collection
 			if ( array( 'GET' ) == $endpoint['methods']
 				&& ! $is_singular ) {
-				$command = 'list';
+				$supported_commands['list'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 
 			// Create a specific resource
 			if ( array( 'POST' ) == $endpoint['methods']
 				&& ! $is_singular ) {
-				$command = 'create';
+				$supported_commands['create'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 
 			// Get a specific resource
 			if ( array( 'GET' ) == $endpoint['methods']
 				&& $is_singular ) {
-				$command = 'get';
+				$supported_commands['get'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 
 			// Update a specific resource
 			if ( in_array( 'POST', $endpoint['methods'] )
 				&& $is_singular ) {
-				$command = 'update';
+				$supported_commands['update'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 
 			// Delete a specific resource
 			if ( array( 'DELETE' ) == $endpoint['methods']
 				&& $is_singular ) {
-				$command = 'delete';
+				$supported_commands['delete'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
+		}
 
-			if ( empty( $command ) ) {
-				continue;
-			}
+		foreach( $supported_commands as $command => $endpoint_args ) {
 
 			$synopsis = array();
 			if ( in_array( $command, array( 'delete', 'get', 'update' ) ) ) {
@@ -180,22 +180,20 @@ class Runner {
 				);
 			}
 
-			if ( ! empty( $endpoint['args'] ) ) {
-				foreach( $endpoint['args'] as $name => $args ) {
-					$arg_reg = array(
-						'name'        => $name,
-						'type'        => 'assoc',
-						'description' => ! empty( $args['description'] ) ? $args['description'] : '',
-						'optional'    => empty( $args['required'] ) ? true : false,
-					);
-					foreach( array( 'enum', 'default' ) as $key ) {
-						if ( isset( $args[ $key ] ) ) {
-							$new_key = 'enum' === $key ? 'options' : $key;
-							$arg_reg[ $new_key ] = $args[ $key ];
-						}
+			foreach( $endpoint_args as $name => $args ) {
+				$arg_reg = array(
+					'name'        => $name,
+					'type'        => 'assoc',
+					'description' => ! empty( $args['description'] ) ? $args['description'] : '',
+					'optional'    => empty( $args['required'] ) ? true : false,
+				);
+				foreach( array( 'enum', 'default' ) as $key ) {
+					if ( isset( $args[ $key ] ) ) {
+						$new_key = 'enum' === $key ? 'options' : $key;
+						$arg_reg[ $new_key ] = $args[ $key ];
 					}
-					$synopsis[] = $arg_reg;
 				}
+				$synopsis[] = $arg_reg;
 			}
 
 			if ( in_array( $command, array( 'list', 'get' ) ) ) {
@@ -252,6 +250,21 @@ class Runner {
 				'when'          => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
 				'before_invoke' => $before_invoke,
 			) );
+
+			if ( 'update' === $command && array_key_exists( 'get', $supported_commands ) ) {
+				$synopsis = array();
+				$synopsis[] = array(
+					'name'        => 'id',
+					'type'        => 'positional',
+					'description' => 'The id for the resource.',
+					'optional'    => false,
+				);
+				WP_CLI::add_command( "{$parent} edit", array( $rest_command, 'edit_item' ), array(
+					'synopsis'      => $synopsis,
+					'when'          => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
+				) );
+			}
+
 		}
 	}
 

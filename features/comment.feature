@@ -18,6 +18,10 @@ Feature: Manage WordPress comments through the REST API
       """
       update
       """
+    And STDOUT should contain:
+      """
+      edit
+      """
 
     When I run `wp rest comment list --help`
     Then STDOUT should contain:
