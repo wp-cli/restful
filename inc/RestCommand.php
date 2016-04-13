@@ -10,6 +10,7 @@ class RestCommand {
 
 	private $scope = 'internal';
 	private $api_url = '';
+	private $auth = array();
 	private $name;
 	private $route;
 	private $resource_identifier;
@@ -40,6 +41,15 @@ class RestCommand {
 	 */
 	public function set_api_url( $api_url ) {
 		$this->api_url = $api_url;
+	}
+
+	/**
+	 * Set the authentication for the API requests
+	 *
+	 * @param array $auth
+	 */
+	public function set_auth( $auth ) {
+		$this->auth = $auth;
 	}
 
 	/**
@@ -233,7 +243,15 @@ EOT;
 			}
 			return array( $response->get_status(), $response->get_data(), $response->get_headers() );
 		} else if ( 'http' === $this->scope ) {
-			$response = Utils\http_request( $method, rtrim( $this->api_url, '/' ) . $route, $assoc_args );
+			$headers = array();
+			if ( ! empty( $this->auth ) && 'basic' === $this->auth['type'] ) {
+				$headers['Authorization'] = 'Basic ' . base64_encode( $this->auth['username'] . ':' . $this->auth['password'] );
+			}
+			if ( 'OPTIONS' === $method ) {
+				$method = 'GET';
+				$assoc_args['_method'] = 'OPTIONS';
+			}
+			$response = Utils\http_request( $method, rtrim( $this->api_url, '/' ) . $route, $assoc_args, $headers );
 			$body = json_decode( $response->body, true );
 			if ( $response->status_code >= 400 ) {
 				if ( ! empty( $body['message'] ) ) {
