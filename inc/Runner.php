@@ -208,8 +208,18 @@ class Runner {
 				$synopsis[] = array(
 					'name'        => 'format',
 					'type'        => 'assoc',
-					'description' => 'Limit response to specific fields. Defaults to all fields.',
+					'description' => 'Render response in a particular format.',
 					'optional'    => true,
+					'default'     => 'table',
+					'options'     => array(
+						'table',
+						'json',
+						'csv',
+						'ids',
+						'yaml',
+						'count',
+						'body',
+					),
 				);
 			}
 
