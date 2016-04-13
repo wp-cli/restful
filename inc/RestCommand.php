@@ -133,7 +133,24 @@ class RestCommand {
 		list( $status, $resource_fields ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
 		$editable_fields = array();
 		foreach( $resource_fields as $key => $value ) {
-			if ( isset( $schema['properties'][ $key ] ) && empty( $schema['properties'][ $key ]['readonly'] ) ) {
+			if ( ! isset( $schema['properties'][ $key ] ) ) {
+				continue;
+			}
+			$properties = $schema['properties'][ $key ];
+			if ( isset( $properties['properties'] ) ) {
+				$parent_key = $key;
+				$properties = $properties['properties'];
+				foreach( $value as $key => $value ) {
+					if ( isset( $properties[ $key ] ) && empty( $properties[ $key ]['readonly'] ) ) {
+						if ( ! isset( $editable_fields[ $parent_key ] ) ) {
+							$editable_fields[ $parent_key ] = array();
+						}
+						$editable_fields[ $parent_key ][ $key ] = $value;
+					}
+				}
+				continue;
+			}
+			if ( empty( $properties['readonly'] ) ) {
 				$editable_fields[ $key ] = $value;
 			}
 		}
