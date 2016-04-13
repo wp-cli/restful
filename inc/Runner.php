@@ -267,6 +267,12 @@ class Runner {
 					'description' => 'The id for the resource.',
 					'optional'    => false,
 				);
+				// @todo this is a hack, see https://github.com/danielbachhuber/wp-rest-cli/issues/9
+				$synopsis[] = array(
+					'name'        => 'http',
+					'type'        => 'assoc',
+					'optional'    => true,
+				);
 				WP_CLI::add_command( "{$parent} edit", array( $rest_command, 'edit_item' ), array(
 					'synopsis'      => $synopsis,
 					'when'          => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
