@@ -140,35 +140,35 @@ class Runner {
 			// List a collection
 			if ( array( 'GET' ) == $endpoint['methods']
 				&& ! $is_singular ) {
-				$supported_commands[] = 'list';
+				$supported_commands['list'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 
 			// Create a specific resource
 			if ( array( 'POST' ) == $endpoint['methods']
 				&& ! $is_singular ) {
-				$supported_commands[] = 'create';
+				$supported_commands['create'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 
 			// Get a specific resource
 			if ( array( 'GET' ) == $endpoint['methods']
 				&& $is_singular ) {
-				$supported_commands[] = 'get';
+				$supported_commands['get'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 
 			// Update a specific resource
 			if ( in_array( 'POST', $endpoint['methods'] )
 				&& $is_singular ) {
-				$supported_commands[] = 'update';
+				$supported_commands['update'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 
 			// Delete a specific resource
 			if ( array( 'DELETE' ) == $endpoint['methods']
 				&& $is_singular ) {
-				$supported_commands[] = 'delete';
+				$supported_commands['delete'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 		}
 
-		foreach( $supported_commands as $command ) {
+		foreach( $supported_commands as $command => $endpoint_args ) {
 
 			$synopsis = array();
 			if ( in_array( $command, array( 'delete', 'get', 'update' ) ) ) {
@@ -180,22 +180,20 @@ class Runner {
 				);
 			}
 
-			if ( ! empty( $endpoint['args'] ) ) {
-				foreach( $endpoint['args'] as $name => $args ) {
-					$arg_reg = array(
-						'name'        => $name,
-						'type'        => 'assoc',
-						'description' => ! empty( $args['description'] ) ? $args['description'] : '',
-						'optional'    => empty( $args['required'] ) ? true : false,
-					);
-					foreach( array( 'enum', 'default' ) as $key ) {
-						if ( isset( $args[ $key ] ) ) {
-							$new_key = 'enum' === $key ? 'options' : $key;
-							$arg_reg[ $new_key ] = $args[ $key ];
-						}
+			foreach( $endpoint_args as $name => $args ) {
+				$arg_reg = array(
+					'name'        => $name,
+					'type'        => 'assoc',
+					'description' => ! empty( $args['description'] ) ? $args['description'] : '',
+					'optional'    => empty( $args['required'] ) ? true : false,
+				);
+				foreach( array( 'enum', 'default' ) as $key ) {
+					if ( isset( $args[ $key ] ) ) {
+						$new_key = 'enum' === $key ? 'options' : $key;
+						$arg_reg[ $new_key ] = $args[ $key ];
 					}
-					$synopsis[] = $arg_reg;
 				}
+				$synopsis[] = $arg_reg;
 			}
 
 			if ( in_array( $command, array( 'list', 'get' ) ) ) {
