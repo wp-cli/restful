@@ -128,6 +128,7 @@ class Runner {
 
 		$parent = "rest {$route_data['schema']['title']}";
 
+		$supported_commands = array();
 		foreach( $route_data['endpoints'] as $endpoint ) {
 
 			$parsed_args = preg_match_all( '#\([^\)]+\)#', $route, $matches );
@@ -135,40 +136,39 @@ class Runner {
 			$trimmed_route = rtrim( $route );
 			$is_singular = $resource_id === substr( $trimmed_route, - strlen( $resource_id ) );
 
-			$command = $method = '';
+			$command = '';
 			// List a collection
 			if ( array( 'GET' ) == $endpoint['methods']
 				&& ! $is_singular ) {
-				$command = 'list';
+				$supported_commands[] = 'list';
 			}
 
 			// Create a specific resource
 			if ( array( 'POST' ) == $endpoint['methods']
 				&& ! $is_singular ) {
-				$command = 'create';
+				$supported_commands[] = 'create';
 			}
 
 			// Get a specific resource
 			if ( array( 'GET' ) == $endpoint['methods']
 				&& $is_singular ) {
-				$command = 'get';
+				$supported_commands[] = 'get';
 			}
 
 			// Update a specific resource
 			if ( in_array( 'POST', $endpoint['methods'] )
 				&& $is_singular ) {
-				$command = 'update';
+				$supported_commands[] = 'update';
 			}
 
 			// Delete a specific resource
 			if ( array( 'DELETE' ) == $endpoint['methods']
 				&& $is_singular ) {
-				$command = 'delete';
+				$supported_commands[] = 'delete';
 			}
+		}
 
-			if ( empty( $command ) ) {
-				continue;
-			}
+		foreach( $supported_commands as $command ) {
 
 			$synopsis = array();
 			if ( in_array( $command, array( 'delete', 'get', 'update' ) ) ) {
@@ -252,6 +252,21 @@ class Runner {
 				'when'          => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
 				'before_invoke' => $before_invoke,
 			) );
+
+			if ( 'update' === $command && in_array( 'get', $supported_commands ) ) {
+				$synopsis = array();
+				$synopsis[] = array(
+					'name'        => 'id',
+					'type'        => 'positional',
+					'description' => 'The id for the resource.',
+					'optional'    => false,
+				);
+				WP_CLI::add_command( "{$parent} edit", array( $rest_command, 'edit_item' ), array(
+					'synopsis'      => $synopsis,
+					'when'          => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
+				) );
+			}
+
 		}
 	}
 
