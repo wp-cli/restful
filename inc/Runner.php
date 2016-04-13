@@ -251,7 +251,7 @@ class Runner {
 				'before_invoke' => $before_invoke,
 			) );
 
-			if ( 'update' === $command && in_array( 'get', $supported_commands ) ) {
+			if ( 'update' === $command && array_key_exists( 'get', $supported_commands ) ) {
 				$synopsis = array();
 				$synopsis[] = array(
 					'name'        => 'id',
