@@ -139,19 +139,35 @@ class RestCommand {
 			$response = rest_do_request( $request );
 			if ( defined( 'SAVEQUERIES' ) && SAVEQUERIES ) {
 				$performed_queries = array();
-				foreach( $GLOBALS['wpdb']->queries as $key => $query ) {
+				foreach( (array) $GLOBALS['wpdb']->queries as $key => $query ) {
 					if ( in_array( $key, $original_queries ) ) {
 						continue;
 					}
 					$performed_queries[] = $query;
 				}
+				usort( $performed_queries, function( $a, $b ){
+					if ( $a[1] === $b[1] ) {
+						return 0;
+					}
+					return ( $a[1] > $b[1] ) ? -1 : 1;
+				});
+
 				$query_count = count( $performed_queries );
 				$query_total_time = 0;
 				foreach( $performed_queries as $query ) {
 					$query_total_time += $query[1];
 				}
-				$query_total_time = round( $query_total_time, 3 );
-				WP_CLI::debug( "REST command executed {$query_count} queries in {$query_total_time} seconds", 'rest' );
+				$slow_query_message = '';
+				if ( $slowest_queries = array_slice( $performed_queries, 0, 20 ) ) {
+					$slow_query_message .= '. The slowest ' . count( $slowest_queries ) . ' queries are:' . PHP_EOL;
+					foreach( $slowest_queries as $query ) {
+						$bits = explode( ', ', $query[2] );
+						$backtrace = implode( ', ', array_slice( $bits, 13, 5 ) );
+						$slow_query_message .= ' - ' . round( $query[1], 6 ) . ' seconds: ' . $backtrace . PHP_EOL;
+					}
+				}
+				$query_total_time = round( $query_total_time, 6 );
+				WP_CLI::debug( "REST command executed {$query_count} queries in {$query_total_time} seconds{$slow_query_message}", 'rest' );
 			}
 			if ( $error = $response->as_error() ) {
 				WP_CLI::error( $error );
