@@ -34,6 +34,13 @@ class Runner {
 				if ( ! $api_index ) {
 					WP_CLI::error( "Couldn't find index data from {$api_url}." );
 				}
+				$bits = parse_url( $assoc_args['http'] );
+				$auth = array();
+				if ( ! empty( $bits['user'] ) ) {
+					$auth['type'] = 'basic';
+					$auth['username'] = $bits['user'];
+					$auth['password'] = ! empty( $bits['pass'] ) ? $bits['pass'] : '';
+				}
 				foreach( $api_index['routes'] as $route => $route_data ) {
 					if ( empty( $route_data['schema']['title'] ) ) {
 						WP_CLI::debug( "No schema title found for {$route}, skipping REST command registration." );
@@ -43,6 +50,7 @@ class Runner {
 					$rest_command = new RESTCommand( $name, $route, $route_data['schema'] );
 					$rest_command->set_scope( 'http' );
 					$rest_command->set_api_url( $api_url );
+					$rest_command->set_auth( $auth );
 					self::register_route_commands( $rest_command, $route, $route_data, array( 'when' => 'before_wp_load' ) );
 				}
 			}
