@@ -158,13 +158,23 @@ class RestCommand {
 					$query_total_time += $query[1];
 				}
 				$slow_query_message = '';
-				if ( $slowest_queries = array_slice( $performed_queries, 0, 20 ) ) {
-					$slow_query_message .= '. The slowest ' . count( $slowest_queries ) . ' queries are:' . PHP_EOL;
-					foreach( $slowest_queries as $query ) {
+				if ( $performed_queries && 'rest' === WP_CLI::get_config( 'debug' ) ) {
+					$slow_query_message .= '. Ordered by slowness, the queries are:' . PHP_EOL;
+					foreach( $performed_queries as $i => $query ) {
+						$i++;
 						$bits = explode( ', ', $query[2] );
-						$backtrace = implode( ', ', array_slice( $bits, 13, 5 ) );
-						$slow_query_message .= ' - ' . round( $query[1], 6 ) . ' seconds: ' . $backtrace . PHP_EOL;
+						$backtrace = implode( ', ', array_slice( $bits, 13 ) );
+						$seconds = round( $query[1], 6 );
+						$slow_query_message .= <<<EOT
+{$i}:
+  - {$seconds} seconds
+  - {$backtrace}
+  - {$query[0]}
+EOT;
+						$slow_query_message .= PHP_EOL;
 					}
+				} else if ( 'rest' !== WP_CLI::get_config( 'debug' ) ) {
+					$slow_query_message = '. Use --debug=rest to see all queries.';
 				}
 				$query_total_time = round( $query_total_time, 6 );
 				WP_CLI::debug( "REST command executed {$query_count} queries in {$query_total_time} seconds{$slow_query_message}", 'rest' );
