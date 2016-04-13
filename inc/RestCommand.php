@@ -173,6 +173,8 @@ class RestCommand {
 EOT;
 						$slow_query_message .= PHP_EOL;
 					}
+				} else if ( 'rest' !== WP_CLI::get_config( 'debug' ) ) {
+					$slow_query_message = '. Use --debug=rest to see all queries.';
 				}
 				$query_total_time = round( $query_total_time, 6 );
 				WP_CLI::debug( "REST command executed {$query_count} queries in {$query_total_time} seconds{$slow_query_message}", 'rest' );
