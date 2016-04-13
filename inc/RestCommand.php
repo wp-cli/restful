@@ -72,7 +72,7 @@ class RestCommand {
 	 */
 	public function get_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
-		if ( 'body' === $assoc_args['format'] ) {
+		if ( ! empty( $assoc_args['format'] ) && 'body' === $assoc_args['format'] ) {
 			echo json_encode( $body );
 		} else {
 			$formatter = $this->get_formatter( $assoc_args );
@@ -86,20 +86,20 @@ class RestCommand {
 	 * @subcommand list
 	 */
 	public function list_items( $args, $assoc_args ) {
-		if ( 'count' === $assoc_args['format'] ) {
+		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
 			$method = 'HEAD';
 		} else {
 			$method = 'GET';
 		}
 		list( $status, $body, $headers ) = $this->do_request( $method, $this->get_base_route(), $assoc_args );
-		if ( 'ids' === $assoc_args['format'] ) {
+		if ( ! empty( $assoc_args['format'] ) && 'ids' === $assoc_args['format'] ) {
 			$items = array_column( $body, 'id' );
 		} else {
 			$items = $body;
 		}
-		if ( 'count' === $assoc_args['format'] ) {
+		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
 			echo (int) $headers['X-WP-Total'];
-		} else if ( 'body' === $assoc_args['format'] ) {
+		} else if ( ! empty( $assoc_args['format'] ) && 'body' === $assoc_args['format'] ) {
 			echo json_encode( $body );
 		} else {
 			$formatter = $this->get_formatter( $assoc_args );
