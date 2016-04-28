@@ -83,6 +83,16 @@ class RestCommand {
 	 */
 	public function get_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
+
+		if ( ! empty( $assoc_args['fields'] ) ) {
+			$fields = explode( ',', $assoc_args['fields'] );
+			foreach( $body as $i => $field ) {
+				if ( ! in_array( $i, $fields ) ) {
+					unset( $body[ $i ] );
+				}
+			}
+		}
+
 		if ( ! empty( $assoc_args['format'] ) && 'body' === $assoc_args['format'] ) {
 			echo json_encode( $body );
 		} else {
@@ -108,6 +118,19 @@ class RestCommand {
 		} else {
 			$items = $body;
 		}
+
+		if ( ! empty( $assoc_args['fields'] ) ) {
+			$fields = explode( ',', $assoc_args['fields'] );
+			foreach( $items as $key => $item ) {
+				foreach( $item as $i => $field ) {
+					if ( ! in_array( $i, $fields ) ) {
+						unset( $item[ $i ] );
+					}
+				}
+				$items[ $key ] = $item;
+			}
+		}
+
 		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
 			echo (int) $headers['X-WP-Total'];
 		} else if ( ! empty( $assoc_args['format'] ) && 'body' === $assoc_args['format'] ) {
