@@ -312,7 +312,7 @@ EOT;
 			if ( ! empty( $assoc_args['context'] ) ) {
 				$fields = $this->get_context_fields( $assoc_args['context'] );
 			} else {
-				$fields = $this->get_context_fields( 'embed' );
+				$fields = $this->get_context_fields( 'view' );
 			}
 		}
 		return new \WP_CLI\Formatter( $assoc_args, $fields );
