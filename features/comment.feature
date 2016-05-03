@@ -95,7 +95,7 @@ Feature: Manage WordPress comments through the REST API
     When I run `wp rest comment create --post=1 --content="Hello World, again" --user=1`
     Then STDOUT should contain:
       """
-      Success: Created comment.
+      Success: Created comment 2
       """
 
     When I run `wp rest comment get 2 --fields=content --format=json`
@@ -114,7 +114,7 @@ Feature: Manage WordPress comments through the REST API
     When I run `wp rest comment update 1 --content="Hello World" --user=1`
     Then STDOUT should contain:
       """
-      Success: Updated comment.
+      Success: Updated comment 1.
       """
 
     When I run `wp rest comment get 1 --fields=content --format=json`
@@ -133,11 +133,11 @@ Feature: Manage WordPress comments through the REST API
     When I run `wp rest comment delete 1 --user=1`
     Then STDOUT should contain:
       """
-      Success: Trashed comment.
+      Success: Trashed comment 1.
       """
 
     When I run `wp rest comment delete 1 --user=1 --force=true`
     Then STDOUT should contain:
       """
-      Success: Deleted comment.
+      Success: Deleted comment 1.
       """
