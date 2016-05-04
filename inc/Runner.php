@@ -65,8 +65,6 @@ class Runner {
 
 		global $wp_rest_server;
 
-		define( 'REST_REQUEST', true );
-
 		$wp_rest_server = new WP_REST_Server;
 		do_action( 'rest_api_init', $wp_rest_server );
 
