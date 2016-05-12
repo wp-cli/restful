@@ -104,6 +104,31 @@ Feature: Manage WordPress comments through the REST API
       {"content":{"rendered":"<p>Hello World, again<\/p>\n"}}
       """
 
+  Scenario: Generate comments
+    When I run `wp rest comment list --format=count`
+    Then STDOUT should be:
+      """
+      1
+      """
+
+    When I run `wp rest comment generate`
+    Then STDERR should be empty
+
+    When I run `wp rest comment list --format=count`
+    Then STDOUT should be:
+      """
+      11
+      """
+
+    When I run `wp rest comment generate --count=9`
+    Then STDOUT should not be empty
+
+    When I run `wp rest comment list --format=count`
+    Then STDOUT should be:
+      """
+      20
+      """
+
   Scenario: Update a comment
     When I try `wp rest comment update 1 --content="Hello World"`
     Then STDERR should contain:
