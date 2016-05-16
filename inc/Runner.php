@@ -227,6 +227,15 @@ class Runner {
 				);
 			}
 
+			if ( in_array( $command, array( 'create', 'update', 'delete' ) ) ) {
+				$synopsis[] = array(
+					'name'        => 'porcelain',
+					'type'        => 'flag',
+					'description' => 'Output just the id when the operation is successful.',
+					'optional'    => true,
+				);
+			}
+
 			// @todo this is a hack, see https://github.com/danielbachhuber/wp-rest-cli/issues/9
 			$synopsis[] = array(
 				'name'        => 'http',

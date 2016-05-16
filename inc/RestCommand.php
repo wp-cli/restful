@@ -59,7 +59,11 @@ class RestCommand {
 	 */
 	public function create_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'POST', $this->get_base_route(), $assoc_args );
-		WP_CLI::success( "Created {$this->name} {$body['id']}." );
+		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
+			WP_CLI::line( $body['id'] );
+		} else {
+			WP_CLI::success( "Created {$this->name} {$body['id']}." );
+		}
 	}
 
 	/**
@@ -105,10 +109,14 @@ class RestCommand {
 	 */
 	public function delete_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
-		if ( empty( $assoc_args['force'] ) ) {
-			WP_CLI::success( "Trashed {$this->name} {$body['id']}." );
+		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
+			WP_CLI::line( $body['id'] );
 		} else {
-			WP_CLI::success( "Deleted {$this->name} {$body['id']}." );
+			if ( empty( $assoc_args['force'] ) ) {
+				WP_CLI::success( "Trashed {$this->name} {$body['id']}." );
+			} else {
+				WP_CLI::success( "Deleted {$this->name} {$body['id']}." );
+			}
 		}
 	}
 
@@ -184,7 +192,11 @@ class RestCommand {
 	 */
 	public function update_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), $assoc_args );
-		WP_CLI::success( "Updated {$this->name} {$body['id']}." );
+		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
+			WP_CLI::line( $body['id'] );
+		} else {
+			WP_CLI::success( "Updated {$this->name} {$body['id']}." );
+		}
 	}
 
 	/**
