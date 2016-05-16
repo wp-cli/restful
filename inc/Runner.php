@@ -257,6 +257,35 @@ class Runner {
 				'before_invoke' => $before_invoke,
 			) );
 
+			if ( 'create' === $command ) {
+				// Reuse synopsis from 'create' command
+				$generate_synopsis = array();
+				$generate_synopsis[] = array(
+					'name'        => 'count',
+					'type'        => 'assoc',
+					'description' => 'Number of items to generate.',
+					'optional'    => true,
+					'default'     => 10,
+				);
+				$generate_synopsis[] = array(
+					'name'        => 'format',
+					'type'        => 'assoc',
+					'description' => 'Render generation in specific format.',
+					'optional'    => true,
+					'default'     => 'progress',
+					'options'     => array(
+						'progress',
+						'ids',
+					)
+				);
+				// Reuse synopsis from 'create' command
+				$generate_synopsis = array_merge( $generate_synopsis, $synopsis );
+				WP_CLI::add_command( "{$parent} generate", array( $rest_command, 'generate_items' ), array(
+					'synopsis'    => $generate_synopsis,
+					'when'        => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
+				) );
+			}
+
 			if ( 'update' === $command && array_key_exists( 'get', $supported_commands ) ) {
 				$synopsis = array();
 				$synopsis[] = array(

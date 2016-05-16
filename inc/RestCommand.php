@@ -63,6 +63,42 @@ class RestCommand {
 	}
 
 	/**
+	 * Generate some items.
+	 *
+	 * @subcommand generate
+	 */
+	public function generate_items( $args, $assoc_args ) {
+
+		$count = $assoc_args['count'];
+		unset( $assoc_args['count'] );
+		$format = $assoc_args['format'];
+		unset( $assoc_args['format'] );
+
+		$notify = false;
+		if ( 'progress' === $format ) {
+			$notify = \WP_CLI\Utils\make_progress_bar( 'Generating items', $count );
+		}
+
+		for ( $i = 0; $i < $count; $i++ ) {
+
+			list( $status, $body ) = $this->do_request( 'POST', $this->get_base_route(), $assoc_args );
+
+			if ( 'progress' === $format ) {
+				$notify->tick();
+			} else if ( 'ids' === $format ) {
+				echo $body['id'];
+				if ( $i < $count - 1 ) {
+					echo ' ';
+				}
+			}
+		}
+
+		if ( 'progress' === $format ) {
+			$notify->finish();
+		}
+	}
+
+	/**
 	 * Delete an existing item.
 	 *
 	 * @subcommand delete
