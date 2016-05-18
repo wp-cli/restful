@@ -78,6 +78,13 @@ Feature: Manage WordPress comments through the REST API
       11
       """
 
+  Scenario: Get the value of an individual comment field
+    When I run `wp rest comment get 1 --field=author_name`
+    Then STDOUT should be:
+      """
+      Mr WordPress
+      """
+
   Scenario: Get a specific comment
     When I run `wp rest comment get 1 --fields=id,author_name`
     Then STDOUT should be a table containing rows:
