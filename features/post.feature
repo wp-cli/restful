@@ -4,6 +4,13 @@ Feature: Manage WordPress posts through the REST API
     Given a WP install
     And I run `wp plugin install rest-api --activate`
 
+  Scenario: Get the value of an individual post field
+    When I run `wp rest post get 1 --field=title`
+    Then STDOUT should be JSON containing:
+      """
+      {"rendered":"Hello world!"}
+      """
+
   Scenario: CUD a post with `--porcelain`
     When I run `wp rest post create --user=admin --title="Test Post" --porcelain`
     Then STDOUT should be a number

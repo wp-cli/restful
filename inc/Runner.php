@@ -210,6 +210,12 @@ class Runner {
 					'optional'    => true,
 				);
 				$synopsis[] = array(
+					'name'        => 'field',
+					'type'        => 'assoc',
+					'description' => 'Get the value of an individual field.',
+					'optional'    => true,
+				);
+				$synopsis[] = array(
 					'name'        => 'format',
 					'type'        => 'assoc',
 					'description' => 'Render response in a particular format.',
