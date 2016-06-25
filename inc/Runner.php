@@ -130,7 +130,7 @@ class Runner {
 	 * @param string
 	 * @param array $endpoints
 	 */
-	private function register_route_commands( $rest_command, $route, $route_data, $command_args = array() ) {
+	private static function register_route_commands( $rest_command, $route, $route_data, $command_args = array() ) {
 
 		$parent = "rest {$route_data['schema']['title']}";
 
