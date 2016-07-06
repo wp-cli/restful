@@ -46,6 +46,20 @@ Notice how you can use `--http=<domain>` to interact with a remote WordPress sit
 
 There are many things wp-rest-cli can't yet do. Please [review the issue backlog](https://github.com/danielbachhuber/wp-rest-cli/issues), and open a new issue if you can't find an exising issue for your topic.
 
+### Profiling REST responses
+
+You can also add `--debug=rest` to any of the `rest` commands to see full details on REST responses. This can be useful for measuring and profiling API requests.
+
+For example:
+
+    $ wp rest --http=demo.wp-api.org tag get 65 --debug=rest
+    Debug: REST command executed 1 queries in 0.000311 seconds. Ordered by slowness, the queries are:
+    1:
+      - 0.000311 seconds
+      - call_user_func, WP_REST_Terms_Controller->get_item, get_term, WP_Term::get_instance
+      - SELECT t.*, tt.* FROM wp_terms AS t INNER JOIN wp_term_taxonomy AS tt ON t.term_id = tt.term_id WHERE t.term_id = 65
+      (1.56s)
+
 ## Installing
 
 wp-rest-cli requires the latest nightly version of WP-CLI. Update with `wp cli update --nightly`.
