@@ -1,5 +1,5 @@
 {
-    "name": "danielbachhuber/wp-rest-cli",
+    "name": "wp-cli/restful",
     "description": "Unlock the potential of the WP REST API at the command line",
     "license": "MIT",
     "authors": [
