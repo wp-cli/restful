@@ -5,7 +5,7 @@ Unlock the potential of the WP REST API at the command line. Project backed by [
 
 **Warning:** This project is at a very early stage. Treat it as an experiment, and understand that breaking changes will be made without warning. The sky may also fall on your head. Using wp-rest-cli requires the latest nightly build of [WP-CLI](http://wp-cli.org/), which you can install with `wp cli update --nightly`.
 
-[![Build Status](https://travis-ci.org/danielbachhuber/wp-rest-cli.svg?branch=master)](https://travis-ci.org/danielbachhuber/wp-rest-cli)
+[![Build Status](https://travis-ci.org/wp-cli/restful.svg?branch=master)](https://travis-ci.org/wp-cli/restful)
 
 Quick links: [Overview](#overview) | [Installing](#installing) | [Contributing](#Contributing)
 
@@ -44,16 +44,16 @@ For example:
 
 Notice how you can use `--http=<domain>` to interact with a remote WordPress site. `--http=<domain>` must be supplied as the second argument to be used. Without it, wp-rest-cli will look for endpoints of a WordPress site in a directory specified by `--path=<path>` (or the current directory, if `--path=<path` isn't supplied).
 
-There are many things wp-rest-cli can't yet do. Please [review the issue backlog](https://github.com/danielbachhuber/wp-rest-cli/issues), and open a new issue if you can't find an exising issue for your topic.
+There are many things wp-rest-cli can't yet do. Please [review the issue backlog](https://github.com/wp-cli/restful/issues), and open a new issue if you can't find an exising issue for your topic.
 
 ## Installing
 
 wp-rest-cli requires the latest nightly version of WP-CLI. Update with `wp cli update --nightly`.
 
-Once you've done so, you can install wp-rest-cli with `wp package install danielbachhuber/wp-rest-cli`.
+Once you've done so, you can install wp-rest-cli with `wp package install wp-cli/restful`.
 
 wp-rest-cli also requires the [latest WP REST API beta](https://wordpress.org/plugins/rest-api/) installed and activated on whichever WordPress you'd like to interact with. Older betas are unsupported — please keep up to date.
 
 ## Contributing
 
-Code and ideas are more than welcome. Please [open an issue](https://github.com/danielbachhuber/wp-rest-cli/issues) with questions, feedback, and violent dissent. Pull requests are expected to include test coverage.
+Code and ideas are more than welcome. Please [open an issue](https://github.com/wp-cli/restful/issues) with questions, feedback, and violent dissent. Pull requests are expected to include test coverage.
