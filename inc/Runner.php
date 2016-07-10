@@ -14,46 +14,37 @@ class Runner {
 	 */
 	public static function load_remote_commands() {
 
-		$global_args = array();
-		foreach( array_slice( $GLOBALS['argv'], 1 ) as $maybe_arg ) {
-			if ( 0 === strpos( $maybe_arg, '--' ) ) {
-				$global_args[] = $maybe_arg;
-			} else {
-				break;
-			}
+		if ( ! isset( WP_CLI::get_runner()->config['http'] ) ) {
+			return;
 		}
-		if ( ! empty( $global_args ) ) {
-			$configurator = WP_CLI::get_configurator();
-			list( $args, $assoc_args, $runtime_config ) = $configurator->parse_args( $global_args );
-			if ( ! empty( $assoc_args['http'] ) ) {
-				$api_url = self::auto_discover_api( $assoc_args['http'] );
-				if ( ! $api_url ) {
-					WP_CLI::error( "Couldn't auto-discover API endpoint from {$assoc_args['http']}." );
-				}
-				$api_index = self::get_api_index( $api_url );
-				if ( ! $api_index ) {
-					WP_CLI::error( "Couldn't find index data from {$api_url}." );
-				}
-				$bits = parse_url( $assoc_args['http'] );
-				$auth = array();
-				if ( ! empty( $bits['user'] ) ) {
-					$auth['type'] = 'basic';
-					$auth['username'] = $bits['user'];
-					$auth['password'] = ! empty( $bits['pass'] ) ? $bits['pass'] : '';
-				}
-				foreach( $api_index['routes'] as $route => $route_data ) {
-					if ( empty( $route_data['schema']['title'] ) ) {
-						WP_CLI::debug( "No schema title found for {$route}, skipping REST command registration.", 'rest' );
-						continue;
-					}
-					$name = $route_data['schema']['title'];
-					$rest_command = new RESTCommand( $name, $route, $route_data['schema'] );
-					$rest_command->set_scope( 'http' );
-					$rest_command->set_api_url( $api_url );
-					$rest_command->set_auth( $auth );
-					self::register_route_commands( $rest_command, $route, $route_data, array( 'when' => 'before_wp_load' ) );
-				}
+
+		$http = WP_CLI::get_runner()->config['http'];
+		$api_url = self::auto_discover_api( $http );
+		if ( ! $api_url ) {
+			WP_CLI::error( "Couldn't auto-discover API endpoint from {$http}." );
+		}
+		$api_index = self::get_api_index( $api_url );
+		if ( ! $api_index ) {
+			WP_CLI::error( "Couldn't find index data from {$api_url}." );
+		}
+		$bits = parse_url( $http );
+		$auth = array();
+		if ( ! empty( $bits['user'] ) ) {
+			$auth['type'] = 'basic';
+			$auth['username'] = $bits['user'];
+			$auth['password'] = ! empty( $bits['pass'] ) ? $bits['pass'] : '';
+		}
+		foreach( $api_index['routes'] as $route => $route_data ) {
+			if ( empty( $route_data['schema']['title'] ) ) {
+				WP_CLI::debug( "No schema title found for {$route}, skipping REST command registration.", 'rest' );
+				continue;
 			}
+			$name = $route_data['schema']['title'];
+			$rest_command = new RESTCommand( $name, $route, $route_data['schema'] );
+			$rest_command->set_scope( 'http' );
+			$rest_command->set_api_url( $api_url );
+			$rest_command->set_auth( $auth );
+			self::register_route_commands( $rest_command, $route, $route_data, array( 'when' => 'before_wp_load' ) );
 		}
 
 	}
@@ -241,13 +232,6 @@ class Runner {
 					'optional'    => true,
 				);
 			}
-
-			// @todo this is a hack, see https://github.com/danielbachhuber/wp-rest-cli/issues/9
-			$synopsis[] = array(
-				'name'        => 'http',
-				'type'        => 'assoc',
-				'optional'    => true,
-			);
 
 			$methods = array(
 				'list'       => 'list_items',
