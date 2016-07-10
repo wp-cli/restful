@@ -256,6 +256,12 @@ class Runner {
 				'before_invoke' => $before_invoke,
 			) );
 
+			if ( 'list' === $command ) {
+				WP_CLI::add_command( "{$parent} diff", array( $rest_command, 'diff_items' ), array(
+					'when' => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
+				) );
+			}
+
 			if ( 'create' === $command ) {
 				// Reuse synopsis from 'create' command
 				$generate_synopsis = array();

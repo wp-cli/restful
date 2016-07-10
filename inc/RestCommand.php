@@ -186,6 +186,38 @@ class RestCommand {
 	}
 
 	/**
+	 * Compare items between environments.
+	 *
+	 * <alias>
+	 * : Alias for the WordPress site to compare to.
+	 *
+	 * [<resource>]
+	 * : Limit comparison to a specific resource, instead of the collection.
+	 *
+	 * [--fields=<fields>]
+	 * : Limit comparison to specific fields.
+	 *
+	 * @subcommand diff
+	 */
+	public function diff_items( $args, $assoc_args ) {
+
+		list( $alias ) = $args;
+		if ( ! array_key_exists( $alias, WP_CLI::get_runner()->aliases ) ) {
+			WP_CLI::error( "Alias '{$alias}' not found." );
+		}
+		$resource = isset( $args[1] ) ? $args[1] : null;
+
+		// @todo:
+		// - fetch items from this environment
+		// - fetch items from the other environment
+		// - compare the two visually
+		// - permit limiting comparison to specific fields
+
+		list( $status, $body, $headers ) = $this->do_request( 'GET', $this->get_base_route(), array() );
+
+	}
+
+	/**
 	 * Update an existing item.
 	 *
 	 * @subcommand update
