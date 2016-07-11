@@ -592,8 +592,6 @@ EOT;
 			$label = false;
 		}
 
-		\cli\Colors::colorize( "%n" );
-
 		$spaces = ( $this->output_nesting_level * 2 ) + 2;
 		if ( $color && $label ) {
 			$line = \cli\Colors::colorize( "{$color}{$label}" ) . $line . \cli\Colors::colorize( "%n" );
