@@ -237,6 +237,19 @@ class RestCommand {
 		$to_headers = $response['headers'];
 		$to_body = $response['body'];
 
+		if ( ! is_null( $resource ) ) {
+			$field = is_numeric( $resource ) ? 'id' : 'slug';
+			$callback = function( $value ) use ( $field, $resource ) {
+				if ( isset( $value[ $field ] ) && $resource == $value[ $field ] ) {
+					return true;
+				}
+				return false;
+			};
+			foreach( array( 'to_body', 'from_body' ) as $response_type ) {
+				$$response_type = array_filter( $$response_type, $callback );
+			}
+		}
+
 		$display_items = array();
 		do {
 			$from_item = $to_item = array();
