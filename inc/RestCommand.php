@@ -126,7 +126,7 @@ class RestCommand {
 	 * @subcommand get
 	 */
 	public function get_item( $args, $assoc_args ) {
-		list( $status, $body ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
+		list( $status, $body, $headers ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
 
 		if ( ! empty( $assoc_args['fields'] ) ) {
 			$fields = explode( ',', $assoc_args['fields'] );
@@ -137,8 +137,16 @@ class RestCommand {
 			}
 		}
 
-		if ( ! empty( $assoc_args['format'] ) && 'body' === $assoc_args['format'] ) {
+		if ( 'headers' === $assoc_args['format'] ) {
+			echo json_encode( $headers );
+		} else if ( 'body' === $assoc_args['format'] ) {
 			echo json_encode( $body );
+		} else if ( 'envelope' === $assoc_args['format'] ) {
+			echo json_encode( array(
+				'body'        => $body,
+				'headers'     => $headers,
+				'status'      => $status,
+			) );
 		} else {
 			$formatter = $this->get_formatter( $assoc_args );
 			$formatter->display_item( $body );
@@ -177,8 +185,16 @@ class RestCommand {
 
 		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
 			echo (int) $headers['X-WP-Total'];
-		} else if ( ! empty( $assoc_args['format'] ) && 'body' === $assoc_args['format'] ) {
+		} else if ( 'headers' === $assoc_args['format'] ) {
+			echo json_encode( $headers );
+		} else if ( 'body' === $assoc_args['format'] ) {
 			echo json_encode( $body );
+		} else if ( 'envelope' === $assoc_args['format'] ) {
+			echo json_encode( array(
+				'body'        => $body,
+				'headers'     => $headers,
+				'status'      => $status,
+			) );
 		} else {
 			$formatter = $this->get_formatter( $assoc_args );
 			$formatter->display_items( $items );
@@ -341,7 +357,7 @@ EOT;
 					}
 				}
 			}
-			return array( $response->status_code, json_decode( $response->body, true ), $response->headers );
+			return array( $response->status_code, json_decode( $response->body, true ), $response->headers->getAll() );
 		}
 		WP_CLI::error( 'Invalid scope for REST command.' );
 	}
