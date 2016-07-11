@@ -219,7 +219,9 @@ class Runner {
 						'ids',
 						'yaml',
 						'count',
+						'headers',
 						'body',
+						'envelope',
 					),
 				);
 			}

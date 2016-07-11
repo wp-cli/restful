@@ -56,6 +56,18 @@ Feature: Manage WordPress comments through the REST API
       [{"author_name":"Mr WordPress"}]
       """
 
+    When I run `wp rest comment list --format=headers`
+    Then STDOUT should be JSON containing:
+      """
+      {"X-WP-TotalPages":1}
+      """
+
+    When I run `wp rest comment list --format=envelope`
+    Then STDOUT should be JSON containing:
+      """
+      {"headers":{"X-WP-TotalPages":1}}
+      """
+
   Scenario: List comments with different contexts
     When I run `wp rest comment list --context=embed --format=csv`
     Then STDOUT should contain:
@@ -96,6 +108,12 @@ Feature: Manage WordPress comments through the REST API
     Then STDOUT should be JSON containing:
       """
       {"author_name":"Mr WordPress"}
+      """
+
+    When I run `wp rest comment get 1 --format=envelope`
+    Then STDOUT should be JSON containing:
+      """
+      {"body":{"author_name":"Mr WordPress"}}
       """
 
   Scenario: Create a comment
