@@ -216,12 +216,6 @@ class RestCommand {
 		$resource = isset( $args[1] ) ? $args[1] : null;
 		$fields = Utils\get_flag_value( $assoc_args, 'fields', null );
 
-		// @todo:
-		// - fetch items from this environment
-		// - fetch items from the other environment
-		// - compare the two visually
-		// - permit limiting comparison to specific fields
-
 		list( $from_status, $from_body, $from_headers ) = $this->do_request( 'GET', $this->get_base_route(), array() );
 
 		$php_bin = WP_CLI::get_php_binary();
