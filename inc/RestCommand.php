@@ -220,12 +220,12 @@ class RestCommand {
 		// - compare the two visually
 		// - permit limiting comparison to specific fields
 
-		list( $status, $from_body, $from_headers ) = $this->do_request( 'GET', $this->get_base_route(), array() );
+		list( $from_status, $from_body, $from_headers ) = $this->do_request( 'GET', $this->get_base_route(), array() );
 
 		$php_bin = WP_CLI::get_php_binary();
 		$script_path = $GLOBALS['argv'][0];
 		$other_args = implode( ' ', array_map( 'escapeshellarg', array( $alias, 'rest', $this->name, 'list' ) ) );
-		$other_assoc_args = Utils\assoc_args_to_str( array( 'format' => 'json' ) );
+		$other_assoc_args = Utils\assoc_args_to_str( array( 'format' => 'envelope' ) );
 		$full_command = "{$php_bin} {$script_path} {$other_args} {$other_assoc_args}";
 		$process = \WP_CLI\Process::create( $full_command, null, array(
 			'HOME'                 => getenv( 'HOME' ),
@@ -233,7 +233,9 @@ class RestCommand {
 			'WP_CLI_CONFIG_PATH'   => getenv( 'WP_CLI_CONFIG_PATH' ),
 		) );
 		$result = $process->run();
-		$to_body = json_decode( $result->stdout, true );
+		$response = json_decode( $result->stdout, true );
+		$to_headers = $response['headers'];
+		$to_body = $response['body'];
 
 		$display_items = array();
 		do {
@@ -253,15 +255,17 @@ class RestCommand {
 				$to_item = array_shift( $to_body );
 			}
 
-			if ( ! empty( $from_item ) || ! empty( $to_item ) ) {
+			if ( ! empty( $to_item ) ) {
+				foreach( array( 'to_item', 'from_item' ) as $item ) {
+					if ( isset( $$item['_links'] ) ) {
+						unset( $$item['_links'] );
+					}
+				}
 				$display_items[] = array(
 					'from'       => self::limit_item_to_fields( $from_item, $fields ),
 					'to'         => self::limit_item_to_fields( $to_item, $fields ),
 				);
-			} else {
-				break;
 			}
-
 		} while( count( $from_body ) || count( $to_body ) );
 
 		foreach( $display_items as $display_item ) {
