@@ -16,6 +16,7 @@ class RestCommand {
 	private $resource_identifier;
 	private $schema;
 	private $default_context = '';
+	private $output_nesting_level = 0;
 
 	public function __construct( $name, $route, $schema ) {
 		$this->name = $name;
@@ -129,12 +130,7 @@ class RestCommand {
 		list( $status, $body, $headers ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
 
 		if ( ! empty( $assoc_args['fields'] ) ) {
-			$fields = explode( ',', $assoc_args['fields'] );
-			foreach( $body as $i => $field ) {
-				if ( ! in_array( $i, $fields ) ) {
-					unset( $body[ $i ] );
-				}
-			}
+			$body = self::limit_item_to_fields( $body, $fields );
 		}
 
 		if ( 'headers' === $assoc_args['format'] ) {
@@ -146,6 +142,7 @@ class RestCommand {
 				'body'        => $body,
 				'headers'     => $headers,
 				'status'      => $status,
+				'api_url'     => $this->api_url,
 			) );
 		} else {
 			$formatter = $this->get_formatter( $assoc_args );
@@ -172,14 +169,8 @@ class RestCommand {
 		}
 
 		if ( ! empty( $assoc_args['fields'] ) ) {
-			$fields = explode( ',', $assoc_args['fields'] );
 			foreach( $items as $key => $item ) {
-				foreach( $item as $i => $field ) {
-					if ( ! in_array( $i, $fields ) ) {
-						unset( $item[ $i ] );
-					}
-				}
-				$items[ $key ] = $item;
+				$items[ $key ] = self::limit_item_to_fields( $item, $fields );
 			}
 		}
 
@@ -194,10 +185,102 @@ class RestCommand {
 				'body'        => $body,
 				'headers'     => $headers,
 				'status'      => $status,
+				'api_url'     => $this->api_url,
 			) );
 		} else {
 			$formatter = $this->get_formatter( $assoc_args );
 			$formatter->display_items( $items );
+		}
+	}
+
+	/**
+	 * Compare items between environments.
+	 *
+	 * <alias>
+	 * : Alias for the WordPress site to compare to.
+	 *
+	 * [<resource>]
+	 * : Limit comparison to a specific resource, instead of the collection.
+	 *
+	 * [--fields=<fields>]
+	 * : Limit comparison to specific fields.
+	 *
+	 * @subcommand diff
+	 */
+	public function diff_items( $args, $assoc_args ) {
+
+		list( $alias ) = $args;
+		if ( ! array_key_exists( $alias, WP_CLI::get_runner()->aliases ) ) {
+			WP_CLI::error( "Alias '{$alias}' not found." );
+		}
+		$resource = isset( $args[1] ) ? $args[1] : null;
+		$fields = Utils\get_flag_value( $assoc_args, 'fields', null );
+
+		list( $from_status, $from_body, $from_headers ) = $this->do_request( 'GET', $this->get_base_route(), array() );
+
+		$php_bin = WP_CLI::get_php_binary();
+		$script_path = $GLOBALS['argv'][0];
+		$other_args = implode( ' ', array_map( 'escapeshellarg', array( $alias, 'rest', $this->name, 'list' ) ) );
+		$other_assoc_args = Utils\assoc_args_to_str( array( 'format' => 'envelope' ) );
+		$full_command = "{$php_bin} {$script_path} {$other_args} {$other_assoc_args}";
+		$process = \WP_CLI\Process::create( $full_command, null, array(
+			'HOME'                 => getenv( 'HOME' ),
+			'WP_CLI_PACKAGES_DIR'  => getenv( 'WP_CLI_PACKAGES_DIR' ),
+			'WP_CLI_CONFIG_PATH'   => getenv( 'WP_CLI_CONFIG_PATH' ),
+		) );
+		$result = $process->run();
+		$response = json_decode( $result->stdout, true );
+		$to_headers = $response['headers'];
+		$to_body = $response['body'];
+		$to_api_url = $response['api_url'];
+
+		if ( ! is_null( $resource ) ) {
+			$field = is_numeric( $resource ) ? 'id' : 'slug';
+			$callback = function( $value ) use ( $field, $resource ) {
+				if ( isset( $value[ $field ] ) && $resource == $value[ $field ] ) {
+					return true;
+				}
+				return false;
+			};
+			foreach( array( 'to_body', 'from_body' ) as $response_type ) {
+				$$response_type = array_filter( $$response_type, $callback );
+			}
+		}
+
+		$display_items = array();
+		do {
+			$from_item = $to_item = array();
+			if ( ! empty( $from_body ) ) {
+				$from_item = array_shift( $from_body );
+				if ( ! empty( $to_body ) && ! empty( $from_item['slug'] ) ) {
+					foreach( $to_body as $i => $item ) {
+						if ( ! empty( $item['slug'] ) && $item['slug'] === $from_item['slug'] ) {
+							$to_item = $item;
+							unset( $to_body[ $i ] );
+							break;
+						}
+					}
+				}
+			} else if ( ! empty( $to_body ) ) {
+				$to_item = array_shift( $to_body );
+			}
+
+			if ( ! empty( $to_item ) ) {
+				foreach( array( 'to_item', 'from_item' ) as $item ) {
+					if ( isset( $$item['_links'] ) ) {
+						unset( $$item['_links'] );
+					}
+				}
+				$display_items[] = array(
+					'from'       => self::limit_item_to_fields( $from_item, $fields ),
+					'to'         => self::limit_item_to_fields( $to_item, $fields ),
+				);
+			}
+		} while( count( $from_body ) || count( $to_body ) );
+
+		WP_CLI::line( \cli\Colors::colorize( "%R(-) {$this->api_url} %G(+) {$to_api_url}%n" ) );
+		foreach( $display_items as $display_item ) {
+			$this->show_difference( $this->name, array( 'from' => $display_item['from'], 'to' => $display_item['to'] ) );
 		}
 	}
 
@@ -415,6 +498,174 @@ EOT;
 	 */
 	private function get_filled_route( $args ) {
 		return rtrim( $this->get_base_route(), '/' ) . '/' . $args[0];
+	}
+
+	/**
+	 * Visually depict the difference between "dictated" and "current"
+	 *
+	 * @param array
+	 */
+	private function show_difference( $slug, $difference ) {
+		$this->output_nesting_level = 0;
+		$this->nested_line( $slug . ': ' );
+		$this->recursively_show_difference( $difference['to'], $difference['from'] );
+		$this->output_nesting_level = 0;
+	}
+
+	/**
+	 * Recursively output the difference between "dictated" and "current"
+	 */
+	private function recursively_show_difference( $dictated, $current = null ) {
+
+		$this->output_nesting_level++;
+
+		if ( $this->is_assoc_array( $dictated ) ) {
+
+			foreach( $dictated as $key => $value ) {
+
+				if ( $this->is_assoc_array( $value ) || is_array( $value ) ) {
+
+					$new_current = isset( $current[ $key ] ) ? $current[ $key ] : null;
+					if ( $new_current ) {
+						$this->nested_line( $key . ': ' );
+					} else {
+						$this->add_line( $key . ': ' );
+					}
+
+					$this->recursively_show_difference( $value, $new_current );
+
+				} else if ( is_string( $value ) ) {
+
+					$pre = $key . ': ';
+
+					if ( isset( $current[ $key ] ) && $current[ $key ] !== $value ) {
+
+						$this->remove_line( $pre . $current[ $key ] );
+						$this->add_line( $pre . $value );
+
+					} else if ( ! isset( $current[ $key ] ) ) {
+
+						$this->add_line( $pre . $value );
+
+					}
+
+				}
+
+			}
+
+		} else if ( is_array( $dictated ) ) {
+
+			foreach( $dictated as $value ) {
+
+				if ( ! $current 
+					|| ! in_array( $value, $current ) ) {
+					$this->add_line( '- ' . $value );
+				}
+
+			}
+
+		} else if ( is_string( $value ) ) {
+
+			$pre = $key . ': ';
+
+			if ( isset( $current[ $key ] ) && $current[ $key ] !== $value ) {
+
+				$this->remove_line( $pre . $current[ $key ] );
+				$this->add_line( $pre . $value );
+
+			} else if ( ! isset( $current[ $key ] ) ) {
+
+				$this->add_line( $pre . $value );
+
+			} else {
+
+				$this->nested_line( $pre );
+
+			}
+
+		}
+
+		$this->output_nesting_level--;
+
+	}
+
+	/**
+	 * Output a line to be added
+	 *
+	 * @param string
+	 */
+	private function add_line( $line ) {
+		$this->nested_line( $line, 'add' );
+	}
+
+	/**
+	 * Output a line to be removed
+	 *
+	 * @param string
+	 */
+	private function remove_line( $line ) {
+		$this->nested_line( $line, 'remove' );
+	}
+
+	/**
+	 * Output a line that's appropriately nested
+	 */
+	private function nested_line( $line, $change = false ) {
+
+		if ( 'add' == $change ) {
+			$color = '%G';
+			$label = '+ ';
+		} else if ( 'remove' == $change ) {
+			$color = '%R';
+			$label = '- ';
+		} else {
+			$color = false;
+			$label = false;
+		}
+
+		$spaces = ( $this->output_nesting_level * 2 ) + 2;
+		if ( $color && $label ) {
+			$line = \cli\Colors::colorize( "{$color}{$label}" ) . $line . \cli\Colors::colorize( "%n" );
+			$spaces = $spaces - 2;
+		}
+		WP_CLI::line( str_pad( ' ', $spaces ) . $line );
+	}
+
+	/**
+	 * Whether or not this is an associative array
+	 *
+	 * @param array
+	 * @return bool
+	 */
+	private function is_assoc_array( $array ) {
+
+		if ( ! is_array( $array ) ) {
+			return false;
+		}
+
+		return array_keys( $array ) !== range( 0, count( $array ) - 1 );
+	}
+
+	/**
+	 * Reduce an item to specific fields.
+	 *
+	 * @param array $item
+	 * @param array $fields
+	 * @return array
+	 */
+	private static function limit_item_to_fields( $item, $fields ) {
+		if ( empty( $fields ) ) {
+			return $item;
+		}
+		if ( is_string( $fields ) ) {
+			$fields = explode( ',', $fields );
+		}
+		foreach( $item as $i => $field ) {
+			if ( ! in_array( $i, $fields ) ) {
+				unset( $item[ $i ] );
+			}
+		}
+		return $item;
 	}
 
 }
