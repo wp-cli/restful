@@ -142,6 +142,7 @@ class RestCommand {
 				'body'        => $body,
 				'headers'     => $headers,
 				'status'      => $status,
+				'api_url'     => $this->api_url,
 			) );
 		} else {
 			$formatter = $this->get_formatter( $assoc_args );
@@ -184,6 +185,7 @@ class RestCommand {
 				'body'        => $body,
 				'headers'     => $headers,
 				'status'      => $status,
+				'api_url'     => $this->api_url,
 			) );
 		} else {
 			$formatter = $this->get_formatter( $assoc_args );
@@ -236,6 +238,7 @@ class RestCommand {
 		$response = json_decode( $result->stdout, true );
 		$to_headers = $response['headers'];
 		$to_body = $response['body'];
+		$to_api_url = $response['api_url'];
 
 		if ( ! is_null( $resource ) ) {
 			$field = is_numeric( $resource ) ? 'id' : 'slug';
@@ -281,6 +284,7 @@ class RestCommand {
 			}
 		} while( count( $from_body ) || count( $to_body ) );
 
+		WP_CLI::line( \cli\Colors::colorize( "%R(-) {$this->api_url} %G(+) {$to_api_url}%n" ) );
 		foreach( $display_items as $display_item ) {
 			$this->show_difference( $this->name, array( 'from' => $display_item['from'], 'to' => $display_item['to'] ) );
 		}
