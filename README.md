@@ -13,9 +13,11 @@ Quick links: [Using](#using) | [Installing](#installing) | [Contributing](#contr
 
 ## Using
 
-RESTful WP-CLI makes [WP REST API](http://v2.wp-api.org/) endpoints available as [WP-CLI](http://wp-cli.org/) commands. It does so in two steps.
+RESTful WP-CLI makes [WP REST API](http://v2.wp-api.org/) endpoints available as [WP-CLI](http://wp-cli.org/) commands. As WordPress becomes more of an application framework embedded into the web, RESTful WP-CLI enables WP-CLI users to interact with a given WordPress install through a higher-level abstraction. For instance, on an eCommerce website, instead of having to know data is stored as `wp post list --post_type=edd_product`, RESTful WP-CLI exposes the properly-modeled data at `wp rest product list`.
 
-### 1. Auto-discovering WP REST API endpoints from any WordPress site running WordPress 4.4 or higher
+Here's an overview of how RESTful WP-CLI works, in two parts.
+
+### 1. Auto-discovers WP REST API endpoints from any WordPress site running WordPress 4.4 or higher
 
 Target a specific WordPress install with `--path=<path>`, `--ssh=<host>`, or `--http=<domain>`:
 
@@ -63,9 +65,12 @@ usage: wp rest command <command>
    or: wp rest spark <command>
 ```
 
-### 2. Registering WP-CLI commands for the resource endpoints it understands, in the `wp rest` namespace.
+### 2. Registers WP-CLI commands for the resource endpoints it understands, in the `wp rest` namespace.
+
+In addition to the standard list, get, create, update and delete commands, RESTful WP-CLI also registers commands for higher-level operations like `edit`, `generate` and `diff`.
 
 ```
+# In this example, `@wpdev` is a WP-CLI alias to `--path=/srv/www/wordpress-develop.dev/src`.
 $ wp @wpdev rest user
 usage: wp rest user create --username=<username> [--name=<name>] [--first_name=<first_name>] [--last_name=<last_name>] --email=<email> [--url=<url>] [--description=<description>] [--nickname=<nickname>] [--slug=<slug>] [--roles=<roles>] --password=<password> [--capabilities=<capabilities>] [--porcelain]
    or: wp rest user delete <id> [--force=<force>] [--reassign=<reassign>] [--porcelain]
@@ -75,12 +80,8 @@ usage: wp rest user create --username=<username> [--name=<name>] [--first_name=<
    or: wp rest user get <id> [--context=<context>] [--fields=<fields>] [--field=<field>] [--format=<format>]
    or: wp rest user list [--context=<context>] [--page=<page>] [--per_page=<per_page>] [--search=<search>] [--exclude=<exclude>] [--include=<include>] [--offset=<offset>] [--order=<order>] [--orderby=<orderby>] [--slug=<slug>] [--roles=<roles>] [--fields=<fields>] [--field=<field>] [--format=<format>]
    or: wp rest user update <id> [--username=<username>] [--name=<name>] [--first_name=<first_name>] [--last_name=<last_name>] [--email=<email>] [--url=<url>] [--description=<description>] [--nickname=<nickname>] [--slug=<slug>] [--roles=<roles>] [--password=<password>] [--capabilities=<capabilities>] [--porcelain]
-```
 
-In addition to the standard list, get, create, update and delete commands, RESTful WP-CLI also registers commands for higher-level operations like:
-
-```
-# Use `wp rest * edit` to open an existing item in the editor
+# Use `wp rest * edit` to open an existing item in the editor.
 $ wp rest category edit 1 --user=daniel
 ---
 description:
@@ -88,9 +89,15 @@ name: Uncategorized
 slug: uncategorized
 parent: 0
 
-# Use `wp rest * generate` to generate dummy content
+# Use `wp rest * generate` to generate dummy content.
 $ wp @wpdev rest post generate --count=50 --title="Test Post" --user=daniel
 Generating items  100% [==============================================] 0:01 / 0:02
+
+# Use `wp rest * diff` to diff a resource or collection of resources between environments.
+$ wp @dev-rest rest command diff @prod-rest find-unused-themes --fields=title
+(-) http://runcommand.dev/api/ (+) https://runcommand.io/api/
+  command:
+  + title: find-unused-themes
 ```
 
 There are many things RESTful WP-CLI can't yet do. Please [review the issue backlog](https://github.com/wp-cli/restful/issues), and open a new issue if you can't find an exising issue for your topic.
