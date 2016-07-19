@@ -10,6 +10,7 @@ Target a specific WordPress install with `--path=<path>`, `--ssh=<host>`, or `--
 
 ```
 # The `--path=<path>` global parameter tells WP-CLI to interact with a WordPress install at a given path.
+# Because this is a stock WordPress install, you see the posts, pages, and other resources you'd expect to see.
 $ wp --path=/srv/www/wordpress-develop.dev/src rest
 usage: wp rest attachment <command>
    or: wp rest category <command>
@@ -25,6 +26,7 @@ usage: wp rest attachment <command>
    or: wp rest user <command>
 
 # The `--http=<domain>` global parameter tells WP-CLI to auto-discover endpoints over HTTP.
+# Because Wired has some custom post types, they're automatically registered as WP-CLI commands.
 $ wp --http=www.wired.com rest
 usage: wp rest attachment <command>
    or: wp rest category <command>
@@ -46,6 +48,7 @@ usage: wp rest attachment <command>
    or: wp rest video <command>
 
 # The `--ssh=<host>` global parameter proxies command execution to a remote WordPress install.
+# Because runcommand has a completely custom data model, you can only interact with commands, excerpts, and sparks.
 $ wp --ssh=runcommand.io rest
 usage: wp rest command <command>
    or: wp rest excerpt <command>
