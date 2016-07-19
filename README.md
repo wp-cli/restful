@@ -3,7 +3,7 @@ wp-cli/restful
 
 Unlock the potential of the WP REST API at the command line.
 
-**Warning:** This project is at a very early stage. Treat it as an experiment, and understand that breaking changes will be made without warning. The sky may also fall on your head. Using wp-rest-cli requires the latest nightly build of [WP-CLI](http://wp-cli.org/), which you can install with `wp cli update --nightly`.
+**Warning:** This project is at a very early stage. Treat it as an experiment, and understand that breaking changes will be made without warning. The sky may also fall on your head. Using RESTful WP-CLI requires the latest nightly build of [WP-CLI](http://wp-cli.org/), which you can install with `wp cli update --nightly`.
 
 Project backed by [Pressed](https://www.pressed.net/), [Chris Lema](https://chrislema.com/), [Human Made](https://hmn.md/), [Pagely](https://pagely.com/), [Pantheon](https://pantheon.io/) and many others. [Learn more →](http://wp-cli.org/restful/)
 
@@ -13,15 +13,15 @@ Quick links: [Using](#using) | [Installing](#installing) | [Contributing](#contr
 
 ## Using
 
-RESTful WP-CLI makes [WP REST API](http://v2.wp-api.org/) endpoints available as [WP-CLI](http://wp-cli.org/) commands. It does so by:
+RESTful WP-CLI makes [WP REST API](http://v2.wp-api.org/) endpoints available as [WP-CLI](http://wp-cli.org/) commands. It does so in two steps.
 
-1. Auto-discovering WP REST API endpoints from any WordPress site running WordPress 4.4 or higher. Target a specific WordPress install with `--path=<path>`, `--ssh=<host>`, or `--http=<domain>`.
-2. Registering WP-CLI commands for the resource endpoints it understands, in the `wp rest` namespace.
+### 1. Auto-discovering WP REST API endpoints from any WordPress site running WordPress 4.4 or higher
 
-For example:
+Target a specific WordPress install with `--path=<path>`, `--ssh=<host>`, or `--http=<domain>`:
 
 ```
-$ wp @wpdev rest
+# The `--path=<path>` global parameter tells WP-CLI to interact with a WordPress install at a given path.
+$ wp --path=/srv/www/wordpress-develop.dev/src rest
 usage: wp rest attachment <command>
    or: wp rest category <command>
    or: wp rest comment <command>
@@ -35,6 +35,37 @@ usage: wp rest attachment <command>
    or: wp rest type <command>
    or: wp rest user <command>
 
+# The `--http=<domain>` global parameter tells WP-CLI to auto-discover endpoints over HTTP.
+$ wp --http=www.wired.com rest
+usage: wp rest attachment <command>
+   or: wp rest category <command>
+   or: wp rest comment <command>
+   or: wp rest liveblog <command>
+   or: wp rest liveblog-revision <command>
+   or: wp rest page <command>
+   or: wp rest page-revision <command>
+   or: wp rest podcast <command>
+   or: wp rest post <command>
+   or: wp rest post-revision <command>
+   or: wp rest series <command>
+   or: wp rest slack-channel <command>
+   or: wp rest status <command>
+   or: wp rest tag <command>
+   or: wp rest taxonomy <command>
+   or: wp rest type <command>
+   or: wp rest user <command>
+   or: wp rest video <command>
+
+# The `--ssh=<host>` global parameter proxies command execution to a remote WordPress install.
+$ wp --ssh=runcommand.io rest
+usage: wp rest command <command>
+   or: wp rest excerpt <command>
+   or: wp rest spark <command>
+```
+
+### 2. Registering WP-CLI commands for the resource endpoints it understands, in the `wp rest` namespace.
+
+```
 $ wp @wpdev rest user
 usage: wp rest user create --username=<username> [--name=<name>] [--first_name=<first_name>] [--last_name=<last_name>] --email=<email> [--url=<url>] [--description=<description>] [--nickname=<nickname>] [--slug=<slug>] [--roles=<roles>] --password=<password> [--capabilities=<capabilities>] [--porcelain]
    or: wp rest user delete <id> [--force=<force>] [--reassign=<reassign>] [--porcelain]
