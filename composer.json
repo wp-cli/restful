@@ -13,7 +13,7 @@
         "files": [ "wp-rest-cli.php" ]
     },
     "require": {
-        "wp-cli/wp-cli": "0.24.0-alpha-c650e14"
+        "wp-cli/wp-cli": "0.24.0-alpha"
     },
     "require-dev": {
         "behat/behat": "~2.5"
