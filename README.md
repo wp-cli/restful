@@ -105,11 +105,24 @@ $ wp @dev-rest rest command diff @prod-rest find-unused-themes --fields=title
   + title: find-unused-themes
 ```
 
+If WP-CLI is operating directly against a WordPress install, you can use the `--debug` flag to track the number of queries and total execution time. This can be useful for measuring and profiling API requests.
+
+```
+$ wp rest category list --debug
+Debug (rest): REST command executed 3 queries in 0.000311 seconds. Use --debug=rest to see all queries. (1.118s)
++---------------+
+| name          |
++---------------+
+| Test Category |
+| Uncategorized |
++---------------+
+```
+
 There are many things RESTful WP-CLI can't yet do. Please [review the issue backlog](https://github.com/wp-cli/restful/issues), and open a new issue if you can't find an exising issue for your topic.
 
 ## Installing
 
-Installing this package requires WP-CLI 0.24.0-alpha-c650e14 or greater. Update to the latest nightly release with `wp cli update --nightly`.
+Installing this package requires WP-CLI 0.24.0-alpha or greater. Update to the latest nightly release with `wp cli update --nightly`.
 
 Once you've done so, you can install this package with `wp package install wp-cli/restful`.
 
