@@ -11,6 +11,7 @@ Target a specific WordPress install with `--path=<path>`, `--ssh=<host>`, or `--
 ```
 # The `--path=<path>` global parameter tells WP-CLI to interact with a WordPress install at a given path.
 # Because this is a stock WordPress install, you see the posts, pages, and other resources you'd expect to see.
+
 $ wp --path=/srv/www/wordpress-develop.dev/src rest
 usage: wp rest attachment <command>
    or: wp rest category <command>
@@ -27,6 +28,7 @@ usage: wp rest attachment <command>
 
 # The `--http=<domain>` global parameter tells WP-CLI to auto-discover endpoints over HTTP.
 # Because Wired has some custom post types, they're automatically registered as WP-CLI commands.
+
 $ wp --http=www.wired.com rest
 usage: wp rest attachment <command>
    or: wp rest category <command>
@@ -49,6 +51,7 @@ usage: wp rest attachment <command>
 
 # The `--ssh=<host>` global parameter proxies command execution to a remote WordPress install.
 # Because runcommand has a completely custom data model, you can only interact with commands, excerpts, and sparks.
+
 $ wp --ssh=runcommand.io rest
 usage: wp rest command <command>
    or: wp rest excerpt <command>
@@ -61,6 +64,7 @@ In addition to the standard list, get, create, update and delete commands, RESTf
 
 ```
 # In this example, `@wpdev` is a WP-CLI alias to `--path=/srv/www/wordpress-develop.dev/src`.
+
 $ wp @wpdev rest user
 usage: wp rest user create --username=<username> [--name=<name>] [--first_name=<first_name>] [--last_name=<last_name>] --email=<email> [--url=<url>] [--description=<description>] [--nickname=<nickname>] [--slug=<slug>] [--roles=<roles>] --password=<password> [--capabilities=<capabilities>] [--porcelain]
    or: wp rest user delete <id> [--force=<force>] [--reassign=<reassign>] [--porcelain]
@@ -72,6 +76,7 @@ usage: wp rest user create --username=<username> [--name=<name>] [--first_name=<
    or: wp rest user update <id> [--username=<username>] [--name=<name>] [--first_name=<first_name>] [--last_name=<last_name>] [--email=<email>] [--url=<url>] [--description=<description>] [--nickname=<nickname>] [--slug=<slug>] [--roles=<roles>] [--password=<password>] [--capabilities=<capabilities>] [--porcelain]
 
 # Use `wp rest * edit` to open an existing item in the editor.
+
 $ wp rest category edit 1 --user=daniel
 ---
 description:
@@ -80,10 +85,12 @@ slug: uncategorized
 parent: 0
 
 # Use `wp rest * generate` to generate dummy content.
+
 $ wp @wpdev rest post generate --count=50 --title="Test Post" --user=daniel
 Generating items  100% [==============================================] 0:01 / 0:02
 
 # Use `wp rest * diff` to diff a resource or collection of resources between environments.
+
 $ wp @dev-rest rest command diff @prod-rest find-unused-themes --fields=title
 (-) http://runcommand.dev/api/ (+) https://runcommand.io/api/
   command:
