@@ -21,7 +21,7 @@ class Runner {
 		$http = WP_CLI::get_runner()->config['http'];
 		$api_url = self::auto_discover_api( $http );
 		if ( ! $api_url ) {
-			WP_CLI::error( "Couldn't auto-discover API endpoint from {$http}." );
+			WP_CLI::error( "Couldn't auto-discover WP REST API endpoint from {$http}." );
 		}
 		$api_index = self::get_api_index( $api_url );
 		if ( ! $api_index ) {
