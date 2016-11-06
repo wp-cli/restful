@@ -41,8 +41,8 @@ Feature: Manage WordPress comments through the REST API
   Scenario: List all WordPress comments
     When I run `wp rest comment list --fields=id,author_name`
     Then STDOUT should be a table containing rows:
-    | id     | author_name    |
-    | 1      | Mr WordPress   |
+    | id     | author_name           |
+    | 1      | A WordPress Commenter |
 
     When I run `wp rest comment list --format=ids`
     Then STDOUT should be:
@@ -53,7 +53,7 @@ Feature: Manage WordPress comments through the REST API
     When I run `wp rest comment list --format=body`
     Then STDOUT should be JSON containing:
       """
-      [{"author_name":"Mr WordPress"}]
+      [{"author_name":"A WordPress Commenter"}]
       """
 
     When I run `wp rest comment list --format=headers`
@@ -94,26 +94,26 @@ Feature: Manage WordPress comments through the REST API
     When I run `wp rest comment get 1 --field=author_name`
     Then STDOUT should be:
       """
-      Mr WordPress
+      A WordPress Commenter
       """
 
   Scenario: Get a specific comment
     When I run `wp rest comment get 1 --fields=id,author_name`
     Then STDOUT should be a table containing rows:
-    | Field       | Value         |
-    | author_name | Mr WordPress  |
-    | id          | 1             |
+    | Field       | Value                 |
+    | author_name | A WordPress Commenter |
+    | id          | 1                     |
 
     When I run `wp rest comment get 1 --format=body`
     Then STDOUT should be JSON containing:
       """
-      {"author_name":"Mr WordPress"}
+      {"author_name":"A WordPress Commenter"}
       """
 
     When I run `wp rest comment get 1 --format=envelope`
     Then STDOUT should be JSON containing:
       """
-      {"body":{"author_name":"Mr WordPress"}}
+      {"body":{"author_name":"A WordPress Commenter"}}
       """
 
   Scenario: Create a comment
