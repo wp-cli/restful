@@ -158,6 +158,7 @@ class RestCommand {
 	 */
 	private static function same_array_array_keys( $toparray ) {
 		list( $key_first_child, $val_first_child ) = each( $toparray );
+		if ( !is_array( $val_first_child ) ) return false;
 		$num_keys_first_child = count($val_first_child);
 		while ( list( $key_sibling, $val_sibling ) = each( $toparray ) ) {
 			if ( count($val_sibling) !== $num_keys_first_child ) return false;
@@ -207,7 +208,7 @@ class RestCommand {
 			$formatter = $this->get_formatter( $assoc_args );
 			if ( isset( $items[0] ) )
 				$formatter->display_items( $items );
-			if ( self::same_array_array_keys( $items ) )
+			elseif ( self::same_array_array_keys( $items ) )
 				$formatter->display_items( $items );
 			else
 				$formatter->display_item( $items );
