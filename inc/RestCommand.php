@@ -151,6 +151,22 @@ class RestCommand {
 	}
 
 	/**
+	 * Compare the keys of the array of arrays for same size and keys
+	 *
+	 * @param array $toparray
+	 * @return boolean
+	 */
+	private static function same_array_array_keys( $toparray ) {
+		list( $key_first_child, $val_first_child ) = each( $toparray );
+		$num_keys_first_child = count($val_first_child);
+		while ( list( $key_sibling, $val_sibling ) = each( $toparray ) ) {
+			if ( count($val_sibling) !== $num_keys_first_child ) return false;
+			if ( array_diff_key( $val_first_child, $val_sibling ) ) return false;
+		}
+		return true;
+	}
+
+	/**
 	 * List all items.
 	 *
 	 * @subcommand list
@@ -189,7 +205,12 @@ class RestCommand {
 			) );
 		} else {
 			$formatter = $this->get_formatter( $assoc_args );
-			$formatter->display_items( $items );
+			if ( isset( $items[0] ) )
+				$formatter->display_items( $items );
+			if ( self::same_array_array_keys( $items ) )
+				$formatter->display_items( $items );
+			else
+				$formatter->display_item( $items );
 		}
 	}
 
@@ -440,7 +461,7 @@ EOT;
 					}
 				}
 			}
-			return array( $response->status_code, json_decode( $response->body, true ), $response->headers->getAll() );
+			return array( $response->status_code, $body, $response->headers->getAll() );
 		}
 		WP_CLI::error( 'Invalid scope for REST command.' );
 	}

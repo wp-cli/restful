@@ -23,16 +23,16 @@ class Runner {
 		if ( ! $api_url ) {
 			WP_CLI::error( "Couldn't auto-discover WP REST API endpoint from {$http}." );
 		}
-		$api_index = self::get_api_index( $api_url );
-		if ( ! $api_index ) {
-			WP_CLI::error( "Couldn't find index data from {$api_url}." );
-		}
 		$bits = parse_url( $http );
 		$auth = array();
 		if ( ! empty( $bits['user'] ) ) {
 			$auth['type'] = 'basic';
 			$auth['username'] = $bits['user'];
 			$auth['password'] = ! empty( $bits['pass'] ) ? $bits['pass'] : '';
+		}
+		$api_index = self::get_api_index( $api_url, $auth );
+		if ( ! $api_index ) {
+			WP_CLI::error( "Couldn't find index data from {$api_url}." );
 		}
 		foreach( $api_index['routes'] as $route => $route_data ) {
 			if ( empty( $route_data['schema']['title'] ) ) {
@@ -105,10 +105,14 @@ class Runner {
 	 * @param string $api_url
 	 * @return array|false
 	 */
-	private static function get_api_index( $api_url ) {
+	private static function get_api_index( $api_url, $auth ) {
 		$query_char = false !== strpos( $api_url, '?' ) ? '&' : '?';
 		$api_url .= $query_char . 'context=help';
-		$response = Utils\http_request( 'GET', $api_url );
+		$headers = array();
+		if ( ! empty( $auth ) && 'basic' === $auth['type'] ) {
+			$headers['Authorization'] = 'Basic ' . base64_encode( $auth['username'] . ':' . $auth['password'] );
+		}
+		$response = Utils\http_request( 'GET', $api_url, null, $headers );
 		if ( empty( $response->body ) ) {
 			return false;
 		}
