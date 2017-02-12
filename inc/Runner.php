@@ -19,6 +19,9 @@ class Runner {
 		}
 
 		$http = WP_CLI::get_runner()->config['http'];
+		if ( false === stripos( $http, 'http://' ) && false === stripos( $http, 'https://' ) ) {
+			$http = 'http://' . $http;
+		}
 		$api_url = self::auto_discover_api( $http );
 		if ( ! $api_url ) {
 			WP_CLI::error( "Couldn't auto-discover WP REST API endpoint from {$http}." );
@@ -85,13 +88,9 @@ class Runner {
 	 * @return string|false
 	 */
 	private static function auto_discover_api( $url ) {
-		if ( false === stripos( $url, 'http://' ) && false === stripos( $url, 'https://' ) ) {
-			$url = 'http://' . $url;
-		}
 		$response = Utils\http_request( 'HEAD', $url );
-		if ( empty( $response->headers['link'] ) ) {
-			return false;
-		}
+		if ( $response->status_code >= 400 ) return false;
+		if ( empty( $response->headers['link'] ) ) return false;
 		$bits = explode( ';', $response->headers['link'] );
 		if ( 'rel="https://api.w.org/"' !== trim( $bits[1] ) ) {
 			return false;
@@ -113,9 +112,8 @@ class Runner {
 			$headers['Authorization'] = 'Basic ' . base64_encode( $auth['username'] . ':' . $auth['password'] );
 		}
 		$response = Utils\http_request( 'GET', $api_url, null, $headers );
-		if ( empty( $response->body ) ) {
-			return false;
-		}
+		if ( $response->status_code >= 400 ) return false;
+		if ( empty( $response->body ) ) return false;
 		return json_decode( $response->body, true );
 	}
 

@@ -61,9 +61,15 @@ class RestCommand {
 	public function create_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'POST', $this->get_base_route(), $assoc_args );
 		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
-			WP_CLI::line( $body['id'] );
+			if ( $status < 400 ) {
+				WP_CLI::line( $body['id'] );
+			}
 		} else {
-			WP_CLI::success( "Created {$this->name} {$body['id']}." );
+			if ( $status < 400 ) {
+				WP_CLI::success( "Created {$this->name} {$body['id']}." );
+			} else {
+				WP_CLI::error( 'Could not complete request.' );
+			}
 		}
 	}
 
@@ -80,25 +86,32 @@ class RestCommand {
 		unset( $assoc_args['format'] );
 
 		$notify = false;
-		if ( 'progress' === $format ) {
+		if ( ( 'progress' === $format ) && !Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
 			$notify = \WP_CLI\Utils\make_progress_bar( 'Generating items', $count );
 		}
 
 		for ( $i = 0; $i < $count; $i++ ) {
-
 			list( $status, $body ) = $this->do_request( 'POST', $this->get_base_route(), $assoc_args );
-
-			if ( 'progress' === $format ) {
-				$notify->tick();
-			} else if ( 'ids' === $format ) {
-				echo $body['id'];
-				if ( $i < $count - 1 ) {
-					echo ' ';
+			if ( $status < 400 ) {
+				if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
+					WP_CLI::line( $body['id'] );
+				} else if ( 'progress' === $format ) {
+					$notify->tick();
+				} else if ( 'ids' === $format ) {
+					echo $body['id'];
+					if ( $i < $count - 1 ) {
+						echo ' ';
+					}
 				}
+			} else {
+				if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
+					return;
+				}
+				WP_CLI::error( 'Could not complete request.' );
 			}
 		}
 
-		if ( 'progress' === $format ) {
+		if ( ( 'progress' === $format ) && !Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
 			$notify->finish();
 		}
 	}
@@ -111,12 +124,19 @@ class RestCommand {
 	public function delete_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
 		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
-			WP_CLI::line( $body['id'] );
+			if ( $status < 400 ) {
+				// handles cases where user forget to put a value for --force=<value>
+				WP_CLI::line( isset( $body['previous'] ) ? $body['previous']['id'] : $body['id'] );
+			}
 		} else {
-			if ( empty( $assoc_args['force'] ) ) {
-				WP_CLI::success( "Trashed {$this->name} {$body['id']}." );
+			if ( $status < 400 ) {
+				if ( isset( $body['previous'] ) ) {
+					WP_CLI::success( "Deleted {$this->name} {$body['previous']['id']}." );
+				} else {
+					WP_CLI::success( "Trashed {$this->name} {$body['id']}." );
+				}
 			} else {
-				WP_CLI::success( "Deleted {$this->name} {$body['id']}." );
+				WP_CLI::error( 'Could not complete request.' );
 			}
 		}
 	}
@@ -314,9 +334,15 @@ class RestCommand {
 	public function update_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), $assoc_args );
 		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
-			WP_CLI::line( $body['id'] );
+			if ( $status < 400 ) {
+				WP_CLI::line( $body['id'] );
+			}
 		} else {
-			WP_CLI::success( "Updated {$this->name} {$body['id']}." );
+			if ( $status < 400 ) {
+				WP_CLI::success( "Updated {$this->name} {$body['id']}." );
+			} else {
+				WP_CLI::error( 'Could not complete request.' );
+			}
 		}
 	}
 
@@ -434,7 +460,7 @@ EOT;
 				WP_CLI::debug( "REST command executed {$query_count} queries in {$query_total_time} seconds{$slow_query_message}", 'rest' );
 			}
 			if ( $error = $response->as_error() ) {
-				WP_CLI::error( $error );
+				WP_CLI::error( $error->get_error_message() );
 			}
 			return array( $response->get_status(), $response->get_data(), $response->get_headers() );
 		} else if ( 'http' === $this->scope ) {
@@ -450,7 +476,7 @@ EOT;
 			$body = json_decode( $response->body, true );
 			if ( $response->status_code >= 400 ) {
 				if ( ! empty( $body['message'] ) ) {
-					WP_CLI::error( $body['message'] . ' ' . json_encode( array( 'status' => $response->status_code ) ) );
+					WP_CLI::error( $body['message'] );
 				} else {
 					switch( $response->status_code ) {
 						case 404:
