@@ -61,14 +61,16 @@ class RestCommand {
 	public function create_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'POST', $this->get_base_route(), $assoc_args );
 		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
-			if ( $status < 400 ) {
+			if ( ( $status < 400 ) && isset( $body['id'] ) ) {
 				WP_CLI::line( $body['id'] );
+			} else {
+				WP_CLI::halt( $status );
 			}
 		} else {
-			if ( $status < 400 ) {
+			if ( ( $status < 400 ) && isset( $body['id'] ) ) {
 				WP_CLI::success( "Created {$this->name} {$body['id']}." );
 			} else {
-				WP_CLI::error( 'Could not complete request.' );
+				WP_CLI::error( "Could not complete request. HTTP code: {$status}", $status );
 			}
 		}
 	}
@@ -105,9 +107,9 @@ class RestCommand {
 				}
 			} else {
 				if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
-					return;
+					WP_CLI::halt( $status );
 				}
-				WP_CLI::error( 'Could not complete request.' );
+				WP_CLI::error( "Could not complete request. HTTP code: {$status}", $status );
 			}
 		}
 
@@ -124,19 +126,21 @@ class RestCommand {
 	public function delete_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
 		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
-			if ( $status < 400 ) {
+			if ( ( $status < 400 ) && ( isset( $body['previous']['id'] ) || isset( $body['id'] ) ) ) {
 				// handles cases where user forget to put a value for --force=<value>
 				WP_CLI::line( isset( $body['previous'] ) ? $body['previous']['id'] : $body['id'] );
+			} else {
+				WP_CLI::halt( $status );
 			}
 		} else {
-			if ( $status < 400 ) {
+			if ( ( $status < 400 ) && ( isset( $body['previous']['id'] ) || isset( $body['id'] ) ) ) {
 				if ( isset( $body['previous'] ) ) {
 					WP_CLI::success( "Deleted {$this->name} {$body['previous']['id']}." );
 				} else {
 					WP_CLI::success( "Trashed {$this->name} {$body['id']}." );
 				}
 			} else {
-				WP_CLI::error( 'Could not complete request.' );
+				WP_CLI::error( "Could not complete request. HTTP code: {$status}", $status );
 			}
 		}
 	}
@@ -165,7 +169,9 @@ class RestCommand {
 				'api_url'     => $this->api_url,
 			) );
 		} else {
-			if ( empty( $body ) ) return;
+			if ( empty( $body ) ) {
+				return;
+			}
 			$formatter = $this->get_formatter( $assoc_args );
 			$formatter->display_item( $body );
 		}
@@ -336,14 +342,16 @@ class RestCommand {
 	public function update_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), $assoc_args );
 		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
-			if ( $status < 400 ) {
+			if ( ( $status < 400 ) && isset( $body['id'] ) ) {
 				WP_CLI::line( $body['id'] );
+			} else {
+				WP_CLI::halt( $status );
 			}
 		} else {
-			if ( $status < 400 ) {
+			if ( ( $status < 400 ) && isset( $body['id'] ) ) {
 				WP_CLI::success( "Updated {$this->name} {$body['id']}." );
 			} else {
-				WP_CLI::error( 'Could not complete request.' );
+				WP_CLI::error( "Could not complete request. HTTP code: {$status}", $status );
 			}
 		}
 	}
@@ -392,7 +400,11 @@ class RestCommand {
 			WP_CLI::warning( "No edits made." );
 		} else {
 			list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ),Spyc::YAMLLoadString( $ret ) );
-			WP_CLI::success( "Updated {$schema['title']} {$args[0]}." );
+			if ( ( $status < 400 ) && isset( $body['id'] ) ) {
+				WP_CLI::success( "Updated {$schema['title']} {$args[0]}." );
+			} else {
+				WP_CLI::error( "Could not complete request. HTTP code: {$status}", $status );
+			}
 		}
 	}
 
@@ -485,7 +497,7 @@ EOT;
 							WP_CLI::error( "No {$this->name} found." );
 							break;
 						default:
-							WP_CLI::error( 'Could not complete request.' );
+							WP_CLI::error( "Could not complete request. HTTP code: {$response->status_code}", $response->status_code );
 							break;
 					}
 				}
@@ -527,7 +539,7 @@ EOT;
 	private function get_context_fields( $context ) {
 		$fields = array();
 		foreach( $this->schema['properties'] as $key => $args ) {
-			if ( empty( $args['context'] ) || in_array( $context, $args['context'] ) ) {
+			if ( !array_key_exists( 'context', $args) || in_array( $context, $args['context'] ) ) {
 				$fields[] = $key;
 			}
 		}

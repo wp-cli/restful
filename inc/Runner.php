@@ -89,8 +89,12 @@ class Runner {
 	 */
 	private static function auto_discover_api( $url ) {
 		$response = Utils\http_request( 'HEAD', $url );
-		if ( $response->status_code >= 400 ) return false;
-		if ( empty( $response->headers['link'] ) ) return false;
+		if ( $response->status_code >= 400 ) {
+			return false;
+		}
+		if ( empty( $response->headers['link'] ) ) {
+			return false;
+		}
 		$bits = explode( ';', $response->headers['link'] );
 		if ( 'rel="https://api.w.org/"' !== trim( $bits[1] ) ) {
 			return false;
@@ -112,8 +116,12 @@ class Runner {
 			$headers['Authorization'] = 'Basic ' . base64_encode( $auth['username'] . ':' . $auth['password'] );
 		}
 		$response = Utils\http_request( 'GET', $api_url, null, $headers );
-		if ( $response->status_code >= 400 ) return false;
-		if ( empty( $response->body ) ) return false;
+		if ( $response->status_code >= 400 ) {
+			return false;
+		}
+		if ( empty( $response->body ) ) {
+			return false;
+		}
 		return json_decode( $response->body, true );
 	}
 
