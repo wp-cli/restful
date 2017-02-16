@@ -137,11 +137,15 @@ class Runner {
 
 		$supported_commands = array();
 		foreach( $route_data['endpoints'] as $endpoint ) {
-
 			$parsed_args = preg_match_all( '#\([^\)]+\)#', $route, $matches );
 			$resource_id = ! empty( $matches[0] ) ? array_pop( $matches[0] ) : null;
 			$trimmed_route = rtrim( $route );
-			$is_singular = $resource_id === substr( $trimmed_route, - strlen( $resource_id ) );
+			$me_at_end = ( false !== stripos( $trimmed_route, '/me', strlen( $trimmed_route ) - 3 ) );
+			if ( $me_at_end ) {
+				// TODO code does not yet support understanding me as a required parameter of another route
+				continue;
+			}
+			$is_singular = ( $resource_id === substr( $trimmed_route, - strlen( $resource_id ) ) );
 
 			$command = '';
 			// List a collection
@@ -173,6 +177,12 @@ class Runner {
 				&& $is_singular ) {
 				$supported_commands['delete'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
+
+			// Purge a collection of resources
+			if ( array( 'DELETE' ) == $endpoint['methods']
+				&& ! $is_singular ) {
+				$supported_commands['purgeall'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
+			}
 		}
 
 		foreach( $supported_commands as $command => $endpoint_args ) {
@@ -188,11 +198,15 @@ class Runner {
 			}
 
 			foreach( $endpoint_args as $name => $args ) {
+				if ( ( 'id' === $name ) && in_array( $command, array( 'delete', 'get', 'update' ) ) ) {
+					// already above promoted it to a required positional argument
+					continue;
+				}
 				$arg_reg = array(
 					'name'        => $name,
 					'type'        => 'assoc',
 					'description' => ! empty( $args['description'] ) ? $args['description'] : '',
-					'optional'    => empty( $args['required'] ) ? true : false,
+					'optional'    => empty( $args['required'] )
 				);
 				foreach( array( 'enum', 'default' ) as $key ) {
 					if ( isset( $args[ $key ] ) ) {
@@ -236,7 +250,7 @@ class Runner {
 				);
 			}
 
-			if ( in_array( $command, array( 'create', 'update', 'delete' ) ) ) {
+			if ( in_array( $command, array( 'create', 'update', 'delete', 'purgeall' ) ) ) {
 				$synopsis[] = array(
 					'name'        => 'porcelain',
 					'type'        => 'flag',
@@ -251,6 +265,7 @@ class Runner {
 				'delete'     => 'delete_item',
 				'get'        => 'get_item',
 				'update'     => 'update_item',
+				'purgeall'   => 'purgeall_items',
 			);
 
 			$before_invoke = null;
@@ -316,8 +331,6 @@ class Runner {
 					'when'          => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
 				) );
 			}
-
 		}
 	}
-
 }

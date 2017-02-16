@@ -146,6 +146,28 @@ class RestCommand {
 	}
 
 	/**
+	 * Delete an existing item.
+	 *
+	 * @subcommand delete
+	 */
+	public function purgeall_items( $args, $assoc_args ) {
+		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
+		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
+			if ( $status < 400 ) {
+				WP_CLI::halt( 0 );
+			} else {
+				WP_CLI::halt( $status );
+			}
+		} else {
+			if ( $status < 400 ) {
+				WP_CLI::success( "Purged all {$this->name}." );
+			} else {
+				WP_CLI::error( "Could not complete request. HTTP code: {$status}", $status );
+			}
+		}
+	}
+
+	/**
 	 * Get a single item.
 	 *
 	 * @subcommand get
@@ -559,7 +581,10 @@ EOT;
 	 * Fill the route based on provided $args
 	 */
 	private function get_filled_route( $args ) {
-		return rtrim( $this->get_base_route(), '/' ) . '/' . $args[0];
+		if ( 1 < count($args) ) {
+			WP_CLI::error( 'wp-cli rest does not support command routes with more than one argument' );
+		}
+		return rtrim( $this->get_base_route(), '/' ) . '/' . ( isset( $args[0] ) ? $args[0] : '' );
 	}
 
 	/**
