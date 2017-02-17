@@ -254,7 +254,9 @@ class RestCommand {
 				'api_url'     => $this->api_url,
 			) );
 		} else {
-			if ( empty( $items ) ) return;
+			if ( empty( $items ) ) {
+				return;
+			}
 			$formatter = $this->get_formatter( $assoc_args );
 			if ( isset( $items[0] ) )
 				$formatter->display_items( $items );
