@@ -143,6 +143,7 @@ class Runner {
 			$me_at_end = ( false !== stripos( $trimmed_route, '/me', strlen( $trimmed_route ) - 3 ) );
 			if ( $me_at_end ) {
 				// TODO code does not yet support understanding me as a required parameter of another route
+				WP_CLI::debug( "Route {$trimmed_route} ends with 'me', skipping REST command registration.", 'rest' );
 				continue;
 			}
 			$is_singular = ( $resource_id === substr( $trimmed_route, - strlen( $resource_id ) ) );
@@ -188,18 +189,14 @@ class Runner {
 		foreach( $supported_commands as $command => $endpoint_args ) {
 
 			$synopsis = array();
-			if ( in_array( $command, array( 'delete', 'get', 'update' ) ) ) {
-				$synopsis[] = array(
-					'name'        => 'id',
-					'type'        => 'positional',
-					'description' => 'The id for the resource.',
-					'optional'    => false,
-				);
-			}
-
 			foreach( $endpoint_args as $name => $args ) {
 				if ( ( 'id' === $name ) && in_array( $command, array( 'delete', 'get', 'update' ) ) ) {
-					// already above promoted it to a required positional argument
+					$synopsis[] = array(
+						'name'        => 'id',
+						'type'        => 'positional',
+						'description' => ! empty( $args['description'] ) ? $args['description'] : 'The id for the resource.',
+						'optional'    => false,
+					);
 					continue;
 				}
 				$arg_reg = array(

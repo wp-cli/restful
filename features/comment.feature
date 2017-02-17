@@ -133,8 +133,9 @@ Feature: Manage WordPress comments through the REST API
     When I try `wp rest comment update 1 --content="Hello World"`
     Then STDERR should contain:
       """
-      Error: Sorry, you are not allowed to edit this comment.
+      Error: Sorry, you are not allowed to edit this comment. HTTP code: 401
       """
+    Then the return code should be 145
 
     When I run `wp rest comment update 1 --content="Hello World" --user=1`
     Then STDOUT should contain:
@@ -152,8 +153,9 @@ Feature: Manage WordPress comments through the REST API
     When I try `wp rest comment delete 1`
     Then STDERR should contain:
       """
-      Error: Sorry, you are not allowed to delete this comment.
+      Error: Sorry, you are not allowed to delete this comment. HTTP code: 401
       """
+    Then the return code should be 145
 
     When I run `wp rest comment delete 1 --user=1`
     Then STDOUT should contain:

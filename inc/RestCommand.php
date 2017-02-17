@@ -496,6 +496,10 @@ EOT;
 				WP_CLI::debug( "REST command executed {$query_count} queries in {$query_total_time} seconds{$slow_query_message}", 'rest' );
 			}
 			if ( $error = $response->as_error() ) {
+				$error_status = $error->get_error_data();
+				if (is_array( $error_status ) && array_key_exists( 'status', $error_status ) ) {
+					WP_CLI::error( $error->get_error_message() . " HTTP code: {$error_status['status']}", $error_status['status'] );
+				}
 				WP_CLI::error( $error->get_error_message() );
 			}
 			return array( $response->get_status(), $response->get_data(), $response->get_headers() );
@@ -512,11 +516,11 @@ EOT;
 			$body = json_decode( $response->body, true );
 			if ( $response->status_code >= 400 ) {
 				if ( ! empty( $body['message'] ) ) {
-					WP_CLI::error( $body['message'] );
+					WP_CLI::error( $body['message'], $response->status_code );
 				} else {
 					switch( $response->status_code ) {
 						case 404:
-							WP_CLI::error( "No {$this->name} found." );
+							WP_CLI::error( "No {$this->name} found.", $response->status_code );
 							break;
 						default:
 							WP_CLI::error( "Could not complete request. HTTP code: {$response->status_code}", $response->status_code );
@@ -754,5 +758,4 @@ EOT;
 		}
 		return $item;
 	}
-
 }
