@@ -125,6 +125,11 @@ class Runner {
 		return json_decode( $response->body, true );
 	}
 
+	private static function endsWith( $needle, $haystack ) {
+		$length = strlen( $needle );
+		return substr( $haystack, - $length, $length ) === $needle;
+	}
+
 	/**
 	 * Register WP-CLI commands for all endpoints on a route
 	 *
@@ -137,18 +142,41 @@ class Runner {
 
 		$supported_commands = array();
 		foreach( $route_data['endpoints'] as $endpoint ) {
-			$parsed_args = preg_match_all( '#\([^\)]+\)#', $route, $matches );
-			$resource_id = ! empty( $matches[0] ) ? array_pop( $matches[0] ) : null;
+			$parsed_args = preg_match_all( '#\(\?P([^\s\)]+)\)#', $route, $all_path_vars );
+			$parsed_args = preg_match_all( '#\(\?P<([^>\s]+)>([^\s\)]+)\)#', $route, $named_path_vars );
 			$trimmed_route = rtrim( $route );
+
+			// check for unsupported routes
 			$me_at_end = ( false !== stripos( $trimmed_route, '/me', strlen( $trimmed_route ) - 3 ) );
 			if ( $me_at_end ) {
 				// TODO code does not yet support understanding me as a required parameter of another route
 				WP_CLI::debug( "Route {$trimmed_route} ends with 'me', skipping REST command registration.", 'rest' );
 				continue;
 			}
-			$is_singular = ( $resource_id === substr( $trimmed_route, - strlen( $resource_id ) ) );
+			if ( 1 < count( $all_path_vars[0] ) ) {
+				WP_CLI::debug( "Route {$trimmed_route} has more than one path parameter. Will not function.", 'rest' );
+			}
+			if ( 0 < ( count( $all_path_vars[0] ) - count( $named_path_vars[0] ) ) ) {
+				WP_CLI::debug( "Route {$trimmed_route} has unnamed path variables, skipping REST command registration.", 'rest' );
+				continue;
+			}
 
-			$command = '';
+			// test if the route intends to operate on a single item or a collection
+			$is_singular = self::endsWith( end( $named_path_vars[0] ), $trimmed_route);
+
+			// make named path variables required positional arguments
+			if ( count( $named_path_vars[1] ) && ! empty( $endpoint['args'] ) ) {
+				foreach( $endpoint['args'] as $arg_name => $arg_value ) {
+					if ( ! is_array( $arg_value ) ) {
+						continue;
+					}
+					if ( in_array( $arg_name, $named_path_vars[1], true ) ) {
+						$endpoint['args'][ $arg_name ]['required'] = true;
+						$endpoint['args'][ $arg_name ]['_positional'] = true;
+					}
+				}
+			}
+
 			// List a collection
 			if ( array( 'GET' ) == $endpoint['methods']
 				&& ! $is_singular ) {
@@ -190,18 +218,9 @@ class Runner {
 
 			$synopsis = array();
 			foreach( $endpoint_args as $name => $args ) {
-				if ( ( 'id' === $name ) && in_array( $command, array( 'delete', 'get', 'update' ) ) ) {
-					$synopsis[] = array(
-						'name'        => 'id',
-						'type'        => 'positional',
-						'description' => ! empty( $args['description'] ) ? $args['description'] : 'The id for the resource.',
-						'optional'    => false,
-					);
-					continue;
-				}
 				$arg_reg = array(
 					'name'        => $name,
-					'type'        => 'assoc',
+					'type'        => empty( $args['_positional'] ) ? 'assoc' : 'positional',
 					'description' => ! empty( $args['description'] ) ? $args['description'] : '',
 					'optional'    => empty( $args['required'] )
 				);
@@ -315,16 +334,15 @@ class Runner {
 				) );
 			}
 
-			if ( 'update' === $command && array_key_exists( 'get', $supported_commands ) ) {
-				$synopsis = array();
-				$synopsis[] = array(
-					'name'        => 'id',
-					'type'        => 'positional',
-					'description' => 'The id for the resource.',
-					'optional'    => false,
-				);
+			if ( 'get' === $command && array_key_exists( 'update', $supported_commands ) ) {
+				$edit_synopsis = $synopsis;
+				foreach ( $edit_synopsis as $syn_key => $syn_value ) {
+					if ( true === $syn_value['optional'] ) {
+						unset( $edit_synopsis[ $syn_key ] );
+					}
+				}
 				WP_CLI::add_command( "{$parent} edit", array( $rest_command, 'edit_item' ), array(
-					'synopsis'      => $synopsis,
+					'synopsis'      => $edit_synopsis,
 					'when'          => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
 				) );
 			}
