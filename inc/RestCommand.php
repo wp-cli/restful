@@ -97,9 +97,9 @@ class RestCommand {
 			if ( $status < 400 ) {
 				if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
 					WP_CLI::line( $body['id'] );
-				} else if ( 'progress' === $format ) {
+				} elseif ( 'progress' === $format ) {
 					$notify->tick();
-				} else if ( 'ids' === $format ) {
+				} elseif ( 'ids' === $format ) {
 					echo $body['id'];
 					if ( $i < $count - 1 ) {
 						echo ' ';
@@ -181,9 +181,9 @@ class RestCommand {
 
 		if ( 'headers' === $assoc_args['format'] ) {
 			echo json_encode( $headers );
-		} else if ( 'body' === $assoc_args['format'] ) {
+		} elseif ( 'body' === $assoc_args['format'] ) {
 			echo json_encode( $body );
-		} else if ( 'envelope' === $assoc_args['format'] ) {
+		} elseif ( 'envelope' === $assoc_args['format'] ) {
 			echo json_encode( array(
 				'body'        => $body,
 				'headers'     => $headers,
@@ -242,11 +242,11 @@ class RestCommand {
 
 		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
 			echo (int) $headers['X-WP-Total'];
-		} else if ( 'headers' === $assoc_args['format'] ) {
+		} elseif ( 'headers' === $assoc_args['format'] ) {
 			echo json_encode( $headers );
-		} else if ( 'body' === $assoc_args['format'] ) {
+		} elseif ( 'body' === $assoc_args['format'] ) {
 			echo json_encode( $body );
-		} else if ( 'envelope' === $assoc_args['format'] ) {
+		} elseif ( 'envelope' === $assoc_args['format'] ) {
 			echo json_encode( array(
 				'body'        => $body,
 				'headers'     => $headers,
@@ -335,7 +335,7 @@ class RestCommand {
 						}
 					}
 				}
-			} else if ( ! empty( $to_body ) ) {
+			} elseif ( ! empty( $to_body ) ) {
 				$to_item = array_shift( $to_body );
 			}
 
@@ -491,7 +491,7 @@ class RestCommand {
 EOT;
 						$slow_query_message .= PHP_EOL;
 					}
-				} else if ( 'rest' !== WP_CLI::get_config( 'debug' ) ) {
+				} elseif ( 'rest' !== WP_CLI::get_config( 'debug' ) ) {
 					$slow_query_message = '. Use --debug=rest to see all queries.';
 				}
 				$query_total_time = round( $query_total_time, 6 );
@@ -505,7 +505,7 @@ EOT;
 				WP_CLI::error( $error->get_error_message() );
 			}
 			return array( $response->get_status(), $response->get_data(), $response->get_headers() );
-		} else if ( 'http' === $this->scope ) {
+		} elseif ( 'http' === $this->scope ) {
 			$headers = array();
 			if ( ! empty( $this->auth ) && 'basic' === $this->auth['type'] ) {
 				$headers['Authorization'] = 'Basic ' . base64_encode( $this->auth['username'] . ':' . $this->auth['password'] );
@@ -627,7 +627,7 @@ EOT;
 
 					$this->recursively_show_difference( $value, $new_current );
 
-				} else if ( is_string( $value ) ) {
+				} elseif ( is_string( $value ) ) {
 
 					$pre = $key . ': ';
 
@@ -636,7 +636,7 @@ EOT;
 						$this->remove_line( $pre . $current[ $key ] );
 						$this->add_line( $pre . $value );
 
-					} else if ( ! isset( $current[ $key ] ) ) {
+					} elseif ( ! isset( $current[ $key ] ) ) {
 
 						$this->add_line( $pre . $value );
 
@@ -646,7 +646,7 @@ EOT;
 
 			}
 
-		} else if ( is_array( $dictated ) ) {
+		} elseif ( is_array( $dictated ) ) {
 
 			foreach( $dictated as $value ) {
 
@@ -657,7 +657,7 @@ EOT;
 
 			}
 
-		} else if ( is_string( $value ) ) {
+		} elseif ( is_string( $value ) ) {
 
 			$pre = $key . ': ';
 
@@ -666,7 +666,7 @@ EOT;
 				$this->remove_line( $pre . $current[ $key ] );
 				$this->add_line( $pre . $value );
 
-			} else if ( ! isset( $current[ $key ] ) ) {
+			} elseif ( ! isset( $current[ $key ] ) ) {
 
 				$this->add_line( $pre . $value );
 
@@ -708,7 +708,7 @@ EOT;
 		if ( 'add' == $change ) {
 			$color = '%G';
 			$label = '+ ';
-		} else if ( 'remove' == $change ) {
+		} elseif ( 'remove' == $change ) {
 			$color = '%R';
 			$label = '- ';
 		} else {
