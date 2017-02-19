@@ -14,7 +14,7 @@ class RestCommand {
 	private $name;
 	private $route;
 	private $schema;
-	private $named_path_vars = [ [] ];
+	private $named_path_vars = array( array() );
 	private $default_context = '';
 	private $output_nesting_level = 0;
 
