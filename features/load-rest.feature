@@ -2,7 +2,8 @@ Feature: Manage WordPress through endpoints locally
 
   Background:
     Given a WP install
-    And I run `wp plugin install rest-api --activate`
+	When I run `wp core version`
+	Then STDOUT should be a version string >= 4.7
 
   Scenario: REST endpoints should load as WP-CLI commands
     When I run `wp help rest`

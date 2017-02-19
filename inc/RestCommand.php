@@ -13,15 +13,13 @@ class RestCommand {
 	private $auth = array();
 	private $name;
 	private $route;
-	private $resource_identifier;
 	private $schema;
+	private $named_path_vars = [ [] ];
 	private $default_context = '';
 	private $output_nesting_level = 0;
 
 	public function __construct( $name, $route, $schema ) {
 		$this->name = $name;
-		$parsed_args = preg_match_all( '#\([^\)]+\)#', $route, $matches );
-		$this->resource_identifier = ! empty( $matches[0] ) ? array_pop( $matches[0] ) : null;
 		$this->route = rtrim( $route );
 		$this->schema = $schema;
 	}
@@ -33,6 +31,15 @@ class RestCommand {
 	 */
 	public function set_scope( $scope ) {
 		$this->scope = $scope;
+	}
+
+	/**
+	 * Set the named_path_vars of the REST requests
+	 *
+	 * @param string $named_path_vars
+	 */
+	public function set_named_path_vars( $named_path_vars ) {
+		$this->named_path_vars = $named_path_vars;
 	}
 
 	/**
@@ -59,7 +66,7 @@ class RestCommand {
 	 * @subcommand create
 	 */
 	public function create_item( $args, $assoc_args ) {
-		list( $status, $body ) = $this->do_request( 'POST', $this->get_base_route(), $assoc_args );
+		list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), $assoc_args );
 		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
 			if ( ( $status < 400 ) && isset( $body['id'] ) ) {
 				WP_CLI::line( $body['id'] );
@@ -93,7 +100,7 @@ class RestCommand {
 		}
 
 		for ( $i = 0; $i < $count; $i++ ) {
-			list( $status, $body ) = $this->do_request( 'POST', $this->get_base_route(), $assoc_args );
+			list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), $assoc_args );
 			if ( $status < 400 ) {
 				if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
 					WP_CLI::line( $body['id'] );
@@ -207,11 +214,17 @@ class RestCommand {
 	 */
 	private static function same_array_array_keys( $toparray ) {
 		list( $key_first_child, $val_first_child ) = each( $toparray );
-		if ( ! is_array( $val_first_child ) ) return false;
+		if ( ! is_array( $val_first_child ) ) {
+			return false;
+		}
 		$num_keys_first_child = count($val_first_child);
 		while ( list( $key_sibling, $val_sibling ) = each( $toparray ) ) {
-			if ( count($val_sibling) !== $num_keys_first_child ) return false;
-			if ( array_diff_key( $val_first_child, $val_sibling ) ) return false;
+			if ( count($val_sibling) !== $num_keys_first_child ) {
+				return false;
+			}
+			if ( array_diff_key( $val_first_child, $val_sibling ) ) {
+				return false;
+			}
 		}
 		return true;
 	}
@@ -222,27 +235,40 @@ class RestCommand {
 	 * @subcommand list
 	 */
 	public function list_items( $args, $assoc_args ) {
-		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
+		if ( ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) && ! empty( $assoc_args['per_page'] ) ) {
+			// only pageable routes will return the X-WP-Total header
 			$method = 'HEAD';
 		} else {
 			$method = 'GET';
 		}
-		list( $status, $body, $headers ) = $this->do_request( $method, $this->get_base_route(), $assoc_args );
+		list( $status, $body, $headers ) = $this->do_request( $method, $this->get_filled_route( $args ), $assoc_args );
+
+		// shortcut --format=count for pageable routes
+		if ( 'HEAD' === $method ) {
+			if ( ! isset( $headers['x-wp-total'] ) ) {
+				// fallback to GET all content and let the wp-cli formatter handle the counting
+				list( $status, $body, $headers ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
+			} else {
+				echo (int) $headers['x-wp-total'];
+				return;
+			}
+		}
+
+		// modify content for the simplified --format=ids
 		if ( ! empty( $assoc_args['format'] ) && 'ids' === $assoc_args['format'] ) {
 			$items = array_column( $body, 'id' );
 		} else {
 			$items = $body;
 		}
 
+		// filter the columns
 		if ( ! empty( $assoc_args['fields'] ) ) {
 			foreach( $items as $key => $item ) {
 				$items[ $key ] = self::limit_item_to_fields( $item, $fields );
 			}
 		}
 
-		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
-			echo (int) $headers['X-WP-Total'];
-		} elseif ( 'headers' === $assoc_args['format'] ) {
+		if ( 'headers' === $assoc_args['format'] ) {
 			echo json_encode( $headers );
 		} elseif ( 'body' === $assoc_args['format'] ) {
 			echo json_encode( $body );
@@ -290,7 +316,7 @@ class RestCommand {
 		$resource = isset( $args[1] ) ? $args[1] : null;
 		$fields = Utils\get_flag_value( $assoc_args, 'fields', null );
 
-		list( $from_status, $from_body, $from_headers ) = $this->do_request( 'GET', $this->get_base_route(), array() );
+		list( $from_status, $from_body, $from_headers ) = $this->do_request( 'GET', $this->get_filled_route( $args ), array() );
 
 		$php_bin = WP_CLI::get_php_binary();
 		$script_path = $GLOBALS['argv'][0];
@@ -423,7 +449,7 @@ class RestCommand {
 		if ( false === $ret ) {
 			WP_CLI::warning( "No edits made." );
 		} else {
-			list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ),Spyc::YAMLLoadString( $ret ) );
+			list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), Spyc::YAMLLoadString( $ret ) );
 			if ( ( $status < 400 ) && isset( $body['id'] ) ) {
 				WP_CLI::success( "Updated {$schema['title']} {$args[0]}." );
 			} else {
@@ -504,7 +530,10 @@ EOT;
 				}
 				WP_CLI::error( $error->get_error_message() );
 			}
-			return array( $response->get_status(), $response->get_data(), $response->get_headers() );
+
+			// normalize headers and return result
+			$norm_headers = array_change_key_case( $response->get_headers(), CASE_LOWER );
+			return array( $response->get_status(), $response->get_data(), $norm_headers );
 		} elseif ( 'http' === $this->scope ) {
 			$headers = array();
 			if ( ! empty( $this->auth ) && 'basic' === $this->auth['type'] ) {
@@ -530,7 +559,13 @@ EOT;
 					}
 				}
 			}
-			return array( $response->status_code, $body, $response->headers->getAll() );
+
+			// normalize headers and return result
+			$norm_headers = [];
+			foreach ( $response->headers->getAll() as $key => $value ) {
+				$norm_headers[ $key ] = $response->headers->flatten( $value );
+			}
+			return array( $response->status_code, $body, $norm_headers );
 		}
 		WP_CLI::error( 'Invalid scope for REST command.' );
 	}
@@ -575,22 +610,18 @@ EOT;
 	}
 
 	/**
-	 * Get the base route for this resource
-	 *
-	 * @return string
-	 */
-	private function get_base_route() {
-		return substr( $this->route, 0, strlen( $this->route ) - strlen( $this->resource_identifier ) );
-	}
-
-	/**
 	 * Fill the route based on provided $args
 	 */
 	private function get_filled_route( $args ) {
-		if ( 1 < count($args) ) {
-			WP_CLI::error( 'wp-cli rest does not support command routes with more than one argument' );
+		if ( count( $args ) !==  count( $this->named_path_vars[0] ) ) {
+			WP_CLI::error( "Wrong number of arguments for {$this->name} command." );
 		}
-		return rtrim( $this->get_base_route(), '/' ) . '/' . ( isset( $args[0] ) ? $args[0] : '' );
+		$filled_route = str_replace( $this->named_path_vars[0], $args, $this->route);
+		if ( empty( $filled_route ) ) {
+			WP_CLI::error( "Unexpected error creating url for {$this->name} command." );
+		}
+		WP_CLI::debug( "REST command url: {$filled_route}", 'rest' );
+		return $filled_route;
 	}
 
 	/**
@@ -735,7 +766,6 @@ EOT;
 		if ( ! is_array( $array ) ) {
 			return false;
 		}
-
 		return array_keys( $array ) !== range( 0, count( $array ) - 1 );
 	}
 

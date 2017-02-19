@@ -109,8 +109,10 @@ class Runner {
 	 * @return array|false
 	 */
 	private static function get_api_index( $api_url, $auth ) {
+		// this method to add a query is weak; may cause problems, e.g. duplicate keynames
 		$query_char = false !== strpos( $api_url, '?' ) ? '&' : '?';
 		$api_url .= $query_char . 'context=help';
+
 		$headers = array();
 		if ( ! empty( $auth ) && 'basic' === $auth['type'] ) {
 			$headers['Authorization'] = 'Basic ' . base64_encode( $auth['username'] . ':' . $auth['password'] );
@@ -153,9 +155,6 @@ class Runner {
 				WP_CLI::debug( "Route {$trimmed_route} ends with 'me', skipping REST command registration.", 'rest' );
 				continue;
 			}
-			if ( 1 < count( $all_path_vars[0] ) ) {
-				WP_CLI::debug( "Route {$trimmed_route} has more than one path parameter. Will not function.", 'rest' );
-			}
 			if ( 0 < ( count( $all_path_vars[0] ) - count( $named_path_vars[0] ) ) ) {
 				WP_CLI::debug( "Route {$trimmed_route} has unnamed path variables, skipping REST command registration.", 'rest' );
 				continue;
@@ -163,6 +162,9 @@ class Runner {
 
 			// test if the route intends to operate on a single item or a collection
 			$is_singular = self::endsWith( end( $named_path_vars[0] ), $trimmed_route);
+
+			// save named path variables to later populate with values
+			$rest_command->set_named_path_vars( $named_path_vars );
 
 			// make named path variables required positional arguments
 			if ( count( $named_path_vars[1] ) && ! empty( $endpoint['args'] ) ) {

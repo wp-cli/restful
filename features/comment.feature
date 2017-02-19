@@ -2,7 +2,8 @@ Feature: Manage WordPress comments through the REST API
 
   Background:
     Given a WP install
-    And I run `wp plugin install rest-api --activate`
+    When I run `wp core version`
+	Then STDOUT should be a version string >= 4.7
 
   Scenario: Help for all available commands
     When I run `wp rest comment --help`
@@ -59,13 +60,13 @@ Feature: Manage WordPress comments through the REST API
     When I run `wp rest comment list --format=headers`
     Then STDOUT should be JSON containing:
       """
-      {"X-WP-TotalPages":1}
+      {"x-wp-totalpages":1}
       """
 
     When I run `wp rest comment list --format=envelope`
     Then STDOUT should be JSON containing:
       """
-      {"headers":{"X-WP-TotalPages":1}}
+      {"headers":{"x-wp-totalpages":1}}
       """
 
   Scenario: List comments with different contexts
