@@ -561,7 +561,7 @@ EOT;
 			}
 
 			// normalize headers and return result
-			$norm_headers = [];
+			$norm_headers = array();
 			foreach ( $response->headers->getAll() as $key => $value ) {
 				$norm_headers[ $key ] = $response->headers->flatten( $value );
 			}
