@@ -153,9 +153,9 @@ class RestCommand {
 	}
 
 	/**
-	 * Delete an existing item.
+	 * Purge all (aka delete all) items in a collection
 	 *
-	 * @subcommand delete
+	 * @subcommand purgeall
 	 */
 	public function purgeall_items( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
