@@ -110,13 +110,14 @@ class RestCommand {
 	 */
 	public function delete_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
+		$id = isset( $body['previous'] ) ? $body['previous']['id'] : $body['id'];
 		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
-			WP_CLI::line( $body['id'] );
+			WP_CLI::line( $id );
 		} else {
 			if ( empty( $assoc_args['force'] ) ) {
-				WP_CLI::success( "Trashed {$this->name} {$body['id']}." );
+				WP_CLI::success( "Trashed {$this->name} {$id}." );
 			} else {
-				WP_CLI::success( "Deleted {$this->name} {$body['id']}." );
+				WP_CLI::success( "Deleted {$this->name} {$id}." );
 			}
 		}
 	}

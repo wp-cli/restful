@@ -2,7 +2,6 @@ Feature: Manage WordPress comments through the REST API
 
   Background:
     Given a WP install
-    And I run `wp plugin install rest-api --activate`
 
   Scenario: Help for all available commands
     When I run `wp rest comment --help`
@@ -133,7 +132,7 @@ Feature: Manage WordPress comments through the REST API
     When I try `wp rest comment update 1 --content="Hello World"`
     Then STDERR should contain:
       """
-      Error: Sorry, you can not edit this comment
+      Error: Sorry, you are not allowed to edit this comment.
       """
 
     When I run `wp rest comment update 1 --content="Hello World" --user=1`
@@ -152,7 +151,7 @@ Feature: Manage WordPress comments through the REST API
     When I try `wp rest comment delete 1`
     Then STDERR should contain:
       """
-      Error: Sorry, you can not delete this comment
+      Error: Sorry, you are not allowed to delete this comment.
       """
 
     When I run `wp rest comment delete 1 --user=1`
