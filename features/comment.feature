@@ -2,7 +2,8 @@ Feature: Manage WordPress comments through the REST API
 
   Background:
     Given a WP install
-    And I run `wp plugin install rest-api --activate`
+    When I run `wp core version`
+	Then STDOUT should be a version string >= 4.7
 
   Scenario: Help for all available commands
     When I run `wp rest comment --help`
@@ -59,13 +60,13 @@ Feature: Manage WordPress comments through the REST API
     When I run `wp rest comment list --format=headers`
     Then STDOUT should be JSON containing:
       """
-      {"X-WP-TotalPages":1}
+      {"x-wp-totalpages":1}
       """
 
     When I run `wp rest comment list --format=envelope`
     Then STDOUT should be JSON containing:
       """
-      {"headers":{"X-WP-TotalPages":1}}
+      {"headers":{"x-wp-totalpages":1}}
       """
 
   Scenario: List comments with different contexts
@@ -133,8 +134,9 @@ Feature: Manage WordPress comments through the REST API
     When I try `wp rest comment update 1 --content="Hello World"`
     Then STDERR should contain:
       """
-      Error: Sorry, you can not edit this comment
+      Error: Sorry, you are not allowed to edit this comment. HTTP code: 401
       """
+    Then the return code should be 145
 
     When I run `wp rest comment update 1 --content="Hello World" --user=1`
     Then STDOUT should contain:
@@ -152,8 +154,9 @@ Feature: Manage WordPress comments through the REST API
     When I try `wp rest comment delete 1`
     Then STDERR should contain:
       """
-      Error: Sorry, you can not delete this comment
+      Error: Sorry, you are not allowed to delete this comment. HTTP code: 401
       """
+    Then the return code should be 145
 
     When I run `wp rest comment delete 1 --user=1`
     Then STDOUT should contain:

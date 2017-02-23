@@ -13,15 +13,13 @@ class RestCommand {
 	private $auth = array();
 	private $name;
 	private $route;
-	private $resource_identifier;
 	private $schema;
+	private $named_path_vars = array( array() );
 	private $default_context = '';
 	private $output_nesting_level = 0;
 
 	public function __construct( $name, $route, $schema ) {
 		$this->name = $name;
-		$parsed_args = preg_match_all( '#\([^\)]+\)#', $route, $matches );
-		$this->resource_identifier = ! empty( $matches[0] ) ? array_pop( $matches[0] ) : null;
 		$this->route = rtrim( $route );
 		$this->schema = $schema;
 	}
@@ -33,6 +31,15 @@ class RestCommand {
 	 */
 	public function set_scope( $scope ) {
 		$this->scope = $scope;
+	}
+
+	/**
+	 * Set the named_path_vars of the REST requests
+	 *
+	 * @param string $named_path_vars
+	 */
+	public function set_named_path_vars( $named_path_vars ) {
+		$this->named_path_vars = $named_path_vars;
 	}
 
 	/**
@@ -59,11 +66,19 @@ class RestCommand {
 	 * @subcommand create
 	 */
 	public function create_item( $args, $assoc_args ) {
-		list( $status, $body ) = $this->do_request( 'POST', $this->get_base_route(), $assoc_args );
+		list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), $assoc_args );
 		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
-			WP_CLI::line( $body['id'] );
+			if ( ( $status < 400 ) && isset( $body['id'] ) ) {
+				WP_CLI::line( $body['id'] );
+			} else {
+				WP_CLI::halt( $status );
+			}
 		} else {
-			WP_CLI::success( "Created {$this->name} {$body['id']}." );
+			if ( ( $status < 400 ) && isset( $body['id'] ) ) {
+				WP_CLI::success( "Created {$this->name} {$body['id']}." );
+			} else {
+				WP_CLI::error( "Could not complete request. HTTP code: {$status}", $status );
+			}
 		}
 	}
 
@@ -80,25 +95,32 @@ class RestCommand {
 		unset( $assoc_args['format'] );
 
 		$notify = false;
-		if ( 'progress' === $format ) {
+		if ( ( 'progress' === $format ) && !Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
 			$notify = \WP_CLI\Utils\make_progress_bar( 'Generating items', $count );
 		}
 
 		for ( $i = 0; $i < $count; $i++ ) {
-
-			list( $status, $body ) = $this->do_request( 'POST', $this->get_base_route(), $assoc_args );
-
-			if ( 'progress' === $format ) {
-				$notify->tick();
-			} else if ( 'ids' === $format ) {
-				echo $body['id'];
-				if ( $i < $count - 1 ) {
-					echo ' ';
+			list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), $assoc_args );
+			if ( $status < 400 ) {
+				if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
+					WP_CLI::line( $body['id'] );
+				} elseif ( 'progress' === $format ) {
+					$notify->tick();
+				} elseif ( 'ids' === $format ) {
+					echo $body['id'];
+					if ( $i < $count - 1 ) {
+						echo ' ';
+					}
 				}
+			} else {
+				if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
+					WP_CLI::halt( $status );
+				}
+				WP_CLI::error( "Could not complete request. HTTP code: {$status}", $status );
 			}
 		}
 
-		if ( 'progress' === $format ) {
+		if ( ( 'progress' === $format ) && !Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
 			$notify->finish();
 		}
 	}
@@ -111,12 +133,43 @@ class RestCommand {
 	public function delete_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
 		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
-			WP_CLI::line( $body['id'] );
-		} else {
-			if ( empty( $assoc_args['force'] ) ) {
-				WP_CLI::success( "Trashed {$this->name} {$body['id']}." );
+			if ( ( $status < 400 ) && ( isset( $body['previous']['id'] ) || isset( $body['id'] ) ) ) {
+				// handles cases where user forget to put a value for --force=<value>
+				WP_CLI::line( isset( $body['previous'] ) ? $body['previous']['id'] : $body['id'] );
 			} else {
-				WP_CLI::success( "Deleted {$this->name} {$body['id']}." );
+				WP_CLI::halt( $status );
+			}
+		} else {
+			if ( ( $status < 400 ) && ( isset( $body['previous']['id'] ) || isset( $body['id'] ) ) ) {
+				if ( isset( $body['previous'] ) ) {
+					WP_CLI::success( "Deleted {$this->name} {$body['previous']['id']}." );
+				} else {
+					WP_CLI::success( "Trashed {$this->name} {$body['id']}." );
+				}
+			} else {
+				WP_CLI::error( "Could not complete request. HTTP code: {$status}", $status );
+			}
+		}
+	}
+
+	/**
+	 * Purge all (aka delete all) items in a collection
+	 *
+	 * @subcommand purgeall
+	 */
+	public function purgeall_items( $args, $assoc_args ) {
+		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
+		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
+			if ( $status < 400 ) {
+				WP_CLI::halt( 0 );
+			} else {
+				WP_CLI::halt( $status );
+			}
+		} else {
+			if ( $status < 400 ) {
+				WP_CLI::success( "Purged all {$this->name}." );
+			} else {
+				WP_CLI::error( "Could not complete request. HTTP code: {$status}", $status );
 			}
 		}
 	}
@@ -135,9 +188,9 @@ class RestCommand {
 
 		if ( 'headers' === $assoc_args['format'] ) {
 			echo json_encode( $headers );
-		} else if ( 'body' === $assoc_args['format'] ) {
+		} elseif ( 'body' === $assoc_args['format'] ) {
 			echo json_encode( $body );
-		} else if ( 'envelope' === $assoc_args['format'] ) {
+		} elseif ( 'envelope' === $assoc_args['format'] ) {
 			echo json_encode( array(
 				'body'        => $body,
 				'headers'     => $headers,
@@ -145,9 +198,35 @@ class RestCommand {
 				'api_url'     => $this->api_url,
 			) );
 		} else {
+			if ( empty( $body ) ) {
+				return;
+			}
 			$formatter = $this->get_formatter( $assoc_args );
 			$formatter->display_item( $body );
 		}
+	}
+
+	/**
+	 * Compare the keys of the array of arrays for same size and keys
+	 *
+	 * @param array $toparray
+	 * @return boolean
+	 */
+	private static function same_array_array_keys( $toparray ) {
+		list( $key_first_child, $val_first_child ) = each( $toparray );
+		if ( ! is_array( $val_first_child ) ) {
+			return false;
+		}
+		$num_keys_first_child = count($val_first_child);
+		while ( list( $key_sibling, $val_sibling ) = each( $toparray ) ) {
+			if ( count($val_sibling) !== $num_keys_first_child ) {
+				return false;
+			}
+			if ( array_diff_key( $val_first_child, $val_sibling ) ) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
@@ -156,31 +235,44 @@ class RestCommand {
 	 * @subcommand list
 	 */
 	public function list_items( $args, $assoc_args ) {
-		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
+		if ( ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) && ! empty( $assoc_args['per_page'] ) ) {
+			// only pageable routes will return the X-WP-Total header
 			$method = 'HEAD';
 		} else {
 			$method = 'GET';
 		}
-		list( $status, $body, $headers ) = $this->do_request( $method, $this->get_base_route(), $assoc_args );
+		list( $status, $body, $headers ) = $this->do_request( $method, $this->get_filled_route( $args ), $assoc_args );
+
+		// shortcut --format=count for pageable routes
+		if ( 'HEAD' === $method ) {
+			if ( ! isset( $headers['x-wp-total'] ) ) {
+				// fallback to GET all content and let the wp-cli formatter handle the counting
+				list( $status, $body, $headers ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
+			} else {
+				echo (int) $headers['x-wp-total'];
+				return;
+			}
+		}
+
+		// modify content for the simplified --format=ids
 		if ( ! empty( $assoc_args['format'] ) && 'ids' === $assoc_args['format'] ) {
 			$items = array_column( $body, 'id' );
 		} else {
 			$items = $body;
 		}
 
+		// filter the columns
 		if ( ! empty( $assoc_args['fields'] ) ) {
 			foreach( $items as $key => $item ) {
 				$items[ $key ] = self::limit_item_to_fields( $item, $fields );
 			}
 		}
 
-		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
-			echo (int) $headers['X-WP-Total'];
-		} else if ( 'headers' === $assoc_args['format'] ) {
+		if ( 'headers' === $assoc_args['format'] ) {
 			echo json_encode( $headers );
-		} else if ( 'body' === $assoc_args['format'] ) {
+		} elseif ( 'body' === $assoc_args['format'] ) {
 			echo json_encode( $body );
-		} else if ( 'envelope' === $assoc_args['format'] ) {
+		} elseif ( 'envelope' === $assoc_args['format'] ) {
 			echo json_encode( array(
 				'body'        => $body,
 				'headers'     => $headers,
@@ -188,8 +280,16 @@ class RestCommand {
 				'api_url'     => $this->api_url,
 			) );
 		} else {
+			if ( empty( $items ) ) {
+				return;
+			}
 			$formatter = $this->get_formatter( $assoc_args );
-			$formatter->display_items( $items );
+			if ( isset( $items[0] ) )
+				$formatter->display_items( $items );
+			elseif ( self::same_array_array_keys( $items ) )
+				$formatter->display_items( $items );
+			else
+				$formatter->display_item( $items );
 		}
 	}
 
@@ -216,7 +316,7 @@ class RestCommand {
 		$resource = isset( $args[1] ) ? $args[1] : null;
 		$fields = Utils\get_flag_value( $assoc_args, 'fields', null );
 
-		list( $from_status, $from_body, $from_headers ) = $this->do_request( 'GET', $this->get_base_route(), array() );
+		list( $from_status, $from_body, $from_headers ) = $this->do_request( 'GET', $this->get_filled_route( $args ), array() );
 
 		$php_bin = WP_CLI::get_php_binary();
 		$script_path = $GLOBALS['argv'][0];
@@ -261,7 +361,7 @@ class RestCommand {
 						}
 					}
 				}
-			} else if ( ! empty( $to_body ) ) {
+			} elseif ( ! empty( $to_body ) ) {
 				$to_item = array_shift( $to_body );
 			}
 
@@ -292,9 +392,17 @@ class RestCommand {
 	public function update_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), $assoc_args );
 		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
-			WP_CLI::line( $body['id'] );
+			if ( ( $status < 400 ) && isset( $body['id'] ) ) {
+				WP_CLI::line( $body['id'] );
+			} else {
+				WP_CLI::halt( $status );
+			}
 		} else {
-			WP_CLI::success( "Updated {$this->name} {$body['id']}." );
+			if ( ( $status < 400 ) && isset( $body['id'] ) ) {
+				WP_CLI::success( "Updated {$this->name} {$body['id']}." );
+			} else {
+				WP_CLI::error( "Could not complete request. HTTP code: {$status}", $status );
+			}
 		}
 	}
 
@@ -341,8 +449,12 @@ class RestCommand {
 		if ( false === $ret ) {
 			WP_CLI::warning( "No edits made." );
 		} else {
-			list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ),Spyc::YAMLLoadString( $ret ) );
-			WP_CLI::success( "Updated {$schema['title']} {$args[0]}." );
+			list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), Spyc::YAMLLoadString( $ret ) );
+			if ( ( $status < 400 ) && isset( $body['id'] ) ) {
+				WP_CLI::success( "Updated {$schema['title']} {$args[0]}." );
+			} else {
+				WP_CLI::error( "Could not complete request. HTTP code: {$status}", $status );
+			}
 		}
 	}
 
@@ -405,17 +517,24 @@ class RestCommand {
 EOT;
 						$slow_query_message .= PHP_EOL;
 					}
-				} else if ( 'rest' !== WP_CLI::get_config( 'debug' ) ) {
+				} elseif ( 'rest' !== WP_CLI::get_config( 'debug' ) ) {
 					$slow_query_message = '. Use --debug=rest to see all queries.';
 				}
 				$query_total_time = round( $query_total_time, 6 );
 				WP_CLI::debug( "REST command executed {$query_count} queries in {$query_total_time} seconds{$slow_query_message}", 'rest' );
 			}
 			if ( $error = $response->as_error() ) {
-				WP_CLI::error( $error );
+				$error_status = $error->get_error_data();
+				if (is_array( $error_status ) && array_key_exists( 'status', $error_status ) ) {
+					WP_CLI::error( $error->get_error_message() . " HTTP code: {$error_status['status']}", $error_status['status'] );
+				}
+				WP_CLI::error( $error->get_error_message() );
 			}
-			return array( $response->get_status(), $response->get_data(), $response->get_headers() );
-		} else if ( 'http' === $this->scope ) {
+
+			// normalize headers and return result
+			$norm_headers = array_change_key_case( $response->get_headers(), CASE_LOWER );
+			return array( $response->get_status(), $response->get_data(), $norm_headers );
+		} elseif ( 'http' === $this->scope ) {
 			$headers = array();
 			if ( ! empty( $this->auth ) && 'basic' === $this->auth['type'] ) {
 				$headers['Authorization'] = 'Basic ' . base64_encode( $this->auth['username'] . ':' . $this->auth['password'] );
@@ -428,19 +547,25 @@ EOT;
 			$body = json_decode( $response->body, true );
 			if ( $response->status_code >= 400 ) {
 				if ( ! empty( $body['message'] ) ) {
-					WP_CLI::error( $body['message'] . ' ' . json_encode( array( 'status' => $response->status_code ) ) );
+					WP_CLI::error( $body['message'], $response->status_code );
 				} else {
 					switch( $response->status_code ) {
 						case 404:
-							WP_CLI::error( "No {$this->name} found." );
+							WP_CLI::error( "No {$this->name} found.", $response->status_code );
 							break;
 						default:
-							WP_CLI::error( 'Could not complete request.' );
+							WP_CLI::error( "Could not complete request. HTTP code: {$response->status_code}", $response->status_code );
 							break;
 					}
 				}
 			}
-			return array( $response->status_code, json_decode( $response->body, true ), $response->headers->getAll() );
+
+			// normalize headers and return result
+			$norm_headers = array();
+			foreach ( $response->headers->getAll() as $key => $value ) {
+				$norm_headers[ $key ] = $response->headers->flatten( $value );
+			}
+			return array( $response->status_code, $body, $norm_headers );
 		}
 		WP_CLI::error( 'Invalid scope for REST command.' );
 	}
@@ -477,7 +602,7 @@ EOT;
 	private function get_context_fields( $context ) {
 		$fields = array();
 		foreach( $this->schema['properties'] as $key => $args ) {
-			if ( empty( $args['context'] ) || in_array( $context, $args['context'] ) ) {
+			if ( !array_key_exists( 'context', $args) || in_array( $context, $args['context'] ) ) {
 				$fields[] = $key;
 			}
 		}
@@ -485,19 +610,18 @@ EOT;
 	}
 
 	/**
-	 * Get the base route for this resource
-	 *
-	 * @return string
-	 */
-	private function get_base_route() {
-		return substr( $this->route, 0, strlen( $this->route ) - strlen( $this->resource_identifier ) );
-	}
-
-	/**
 	 * Fill the route based on provided $args
 	 */
 	private function get_filled_route( $args ) {
-		return rtrim( $this->get_base_route(), '/' ) . '/' . $args[0];
+		if ( count( $args ) !==  count( $this->named_path_vars[0] ) ) {
+			WP_CLI::error( "Wrong number of arguments for {$this->name} command." );
+		}
+		$filled_route = str_replace( $this->named_path_vars[0], $args, $this->route);
+		if ( empty( $filled_route ) ) {
+			WP_CLI::error( "Unexpected error creating url for {$this->name} command." );
+		}
+		WP_CLI::debug( "REST command url: {$filled_route}", 'rest' );
+		return $filled_route;
 	}
 
 	/**
@@ -534,7 +658,7 @@ EOT;
 
 					$this->recursively_show_difference( $value, $new_current );
 
-				} else if ( is_string( $value ) ) {
+				} elseif ( is_string( $value ) ) {
 
 					$pre = $key . ': ';
 
@@ -543,7 +667,7 @@ EOT;
 						$this->remove_line( $pre . $current[ $key ] );
 						$this->add_line( $pre . $value );
 
-					} else if ( ! isset( $current[ $key ] ) ) {
+					} elseif ( ! isset( $current[ $key ] ) ) {
 
 						$this->add_line( $pre . $value );
 
@@ -553,7 +677,7 @@ EOT;
 
 			}
 
-		} else if ( is_array( $dictated ) ) {
+		} elseif ( is_array( $dictated ) ) {
 
 			foreach( $dictated as $value ) {
 
@@ -564,7 +688,7 @@ EOT;
 
 			}
 
-		} else if ( is_string( $value ) ) {
+		} elseif ( is_string( $value ) ) {
 
 			$pre = $key . ': ';
 
@@ -573,7 +697,7 @@ EOT;
 				$this->remove_line( $pre . $current[ $key ] );
 				$this->add_line( $pre . $value );
 
-			} else if ( ! isset( $current[ $key ] ) ) {
+			} elseif ( ! isset( $current[ $key ] ) ) {
 
 				$this->add_line( $pre . $value );
 
@@ -615,7 +739,7 @@ EOT;
 		if ( 'add' == $change ) {
 			$color = '%G';
 			$label = '+ ';
-		} else if ( 'remove' == $change ) {
+		} elseif ( 'remove' == $change ) {
 			$color = '%R';
 			$label = '- ';
 		} else {
@@ -642,7 +766,6 @@ EOT;
 		if ( ! is_array( $array ) ) {
 			return false;
 		}
-
 		return array_keys( $array ) !== range( 0, count( $array ) - 1 );
 	}
 
@@ -667,5 +790,4 @@ EOT;
 		}
 		return $item;
 	}
-
 }

@@ -19,13 +19,12 @@ class Runner {
 		}
 
 		$http = WP_CLI::get_runner()->config['http'];
+		if ( false === stripos( $http, 'http://' ) && false === stripos( $http, 'https://' ) ) {
+			$http = 'http://' . $http;
+		}
 		$api_url = self::auto_discover_api( $http );
 		if ( ! $api_url ) {
 			WP_CLI::error( "Couldn't auto-discover WP REST API endpoint from {$http}." );
-		}
-		$api_index = self::get_api_index( $api_url );
-		if ( ! $api_index ) {
-			WP_CLI::error( "Couldn't find index data from {$api_url}." );
 		}
 		$bits = parse_url( $http );
 		$auth = array();
@@ -33,6 +32,10 @@ class Runner {
 			$auth['type'] = 'basic';
 			$auth['username'] = $bits['user'];
 			$auth['password'] = ! empty( $bits['pass'] ) ? $bits['pass'] : '';
+		}
+		$api_index = self::get_api_index( $api_url, $auth );
+		if ( ! $api_index ) {
+			WP_CLI::error( "Couldn't find index data from {$api_url}." );
 		}
 		foreach( $api_index['routes'] as $route => $route_data ) {
 			if ( empty( $route_data['schema']['title'] ) ) {
@@ -85,10 +88,10 @@ class Runner {
 	 * @return string|false
 	 */
 	private static function auto_discover_api( $url ) {
-		if ( false === stripos( $url, 'http://' ) && false === stripos( $url, 'https://' ) ) {
-			$url = 'http://' . $url;
-		}
 		$response = Utils\http_request( 'HEAD', $url );
+		if ( $response->status_code >= 400 ) {
+			return false;
+		}
 		if ( empty( $response->headers['link'] ) ) {
 			return false;
 		}
@@ -105,14 +108,28 @@ class Runner {
 	 * @param string $api_url
 	 * @return array|false
 	 */
-	private static function get_api_index( $api_url ) {
+	private static function get_api_index( $api_url, $auth ) {
+		// this method to add a query is weak; may cause problems, e.g. duplicate keynames
 		$query_char = false !== strpos( $api_url, '?' ) ? '&' : '?';
 		$api_url .= $query_char . 'context=help';
-		$response = Utils\http_request( 'GET', $api_url );
+
+		$headers = array();
+		if ( ! empty( $auth ) && 'basic' === $auth['type'] ) {
+			$headers['Authorization'] = 'Basic ' . base64_encode( $auth['username'] . ':' . $auth['password'] );
+		}
+		$response = Utils\http_request( 'GET', $api_url, null, $headers );
+		if ( $response->status_code >= 400 ) {
+			return false;
+		}
 		if ( empty( $response->body ) ) {
 			return false;
 		}
 		return json_decode( $response->body, true );
+	}
+
+	private static function endsWith( $needle, $haystack ) {
+		$length = strlen( $needle );
+		return substr( $haystack, - $length, $length ) === $needle;
 	}
 
 	/**
@@ -127,13 +144,41 @@ class Runner {
 
 		$supported_commands = array();
 		foreach( $route_data['endpoints'] as $endpoint ) {
-
-			$parsed_args = preg_match_all( '#\([^\)]+\)#', $route, $matches );
-			$resource_id = ! empty( $matches[0] ) ? array_pop( $matches[0] ) : null;
+			$parsed_args = preg_match_all( '#\(\?P([^\s\)]+)\)#', $route, $all_path_vars );
+			$parsed_args = preg_match_all( '#\(\?P<([^>\s]+)>([^\s\)]+)\)#', $route, $named_path_vars );
 			$trimmed_route = rtrim( $route );
-			$is_singular = $resource_id === substr( $trimmed_route, - strlen( $resource_id ) );
 
-			$command = '';
+			// check for unsupported routes
+			$me_at_end = ( false !== stripos( $trimmed_route, '/me', strlen( $trimmed_route ) - 3 ) );
+			if ( $me_at_end ) {
+				// TODO code does not yet support understanding me as a required parameter of another route
+				WP_CLI::debug( "Route {$trimmed_route} ends with 'me', skipping REST command registration.", 'rest' );
+				continue;
+			}
+			if ( 0 < ( count( $all_path_vars[0] ) - count( $named_path_vars[0] ) ) ) {
+				WP_CLI::debug( "Route {$trimmed_route} has unnamed path variables, skipping REST command registration.", 'rest' );
+				continue;
+			}
+
+			// test if the route intends to operate on a single item or a collection
+			$is_singular = self::endsWith( end( $named_path_vars[0] ), $trimmed_route);
+
+			// save named path variables to later populate with values
+			$rest_command->set_named_path_vars( $named_path_vars );
+
+			// make named path variables required positional arguments
+			if ( count( $named_path_vars[1] ) && ! empty( $endpoint['args'] ) ) {
+				foreach( $endpoint['args'] as $arg_name => $arg_value ) {
+					if ( ! is_array( $arg_value ) ) {
+						continue;
+					}
+					if ( in_array( $arg_name, $named_path_vars[1], true ) ) {
+						$endpoint['args'][ $arg_name ]['required'] = true;
+						$endpoint['args'][ $arg_name ]['_positional'] = true;
+					}
+				}
+			}
+
 			// List a collection
 			if ( array( 'GET' ) == $endpoint['methods']
 				&& ! $is_singular ) {
@@ -163,26 +208,23 @@ class Runner {
 				&& $is_singular ) {
 				$supported_commands['delete'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
+
+			// Purge a collection of resources
+			if ( array( 'DELETE' ) == $endpoint['methods']
+				&& ! $is_singular ) {
+				$supported_commands['purgeall'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
+			}
 		}
 
 		foreach( $supported_commands as $command => $endpoint_args ) {
 
 			$synopsis = array();
-			if ( in_array( $command, array( 'delete', 'get', 'update' ) ) ) {
-				$synopsis[] = array(
-					'name'        => 'id',
-					'type'        => 'positional',
-					'description' => 'The id for the resource.',
-					'optional'    => false,
-				);
-			}
-
 			foreach( $endpoint_args as $name => $args ) {
 				$arg_reg = array(
 					'name'        => $name,
-					'type'        => 'assoc',
+					'type'        => empty( $args['_positional'] ) ? 'assoc' : 'positional',
 					'description' => ! empty( $args['description'] ) ? $args['description'] : '',
-					'optional'    => empty( $args['required'] ) ? true : false,
+					'optional'    => empty( $args['required'] )
 				);
 				foreach( array( 'enum', 'default' ) as $key ) {
 					if ( isset( $args[ $key ] ) ) {
@@ -226,7 +268,7 @@ class Runner {
 				);
 			}
 
-			if ( in_array( $command, array( 'create', 'update', 'delete' ) ) ) {
+			if ( in_array( $command, array( 'create', 'update', 'delete', 'purgeall' ) ) ) {
 				$synopsis[] = array(
 					'name'        => 'porcelain',
 					'type'        => 'flag',
@@ -241,6 +283,7 @@ class Runner {
 				'delete'     => 'delete_item',
 				'get'        => 'get_item',
 				'update'     => 'update_item',
+				'purgeall'   => 'purgeall_items',
 			);
 
 			$before_invoke = null;
@@ -293,21 +336,18 @@ class Runner {
 				) );
 			}
 
-			if ( 'update' === $command && array_key_exists( 'get', $supported_commands ) ) {
-				$synopsis = array();
-				$synopsis[] = array(
-					'name'        => 'id',
-					'type'        => 'positional',
-					'description' => 'The id for the resource.',
-					'optional'    => false,
-				);
+			if ( 'get' === $command && array_key_exists( 'update', $supported_commands ) ) {
+				$edit_synopsis = $synopsis;
+				foreach ( $edit_synopsis as $syn_key => $syn_value ) {
+					if ( true === $syn_value['optional'] ) {
+						unset( $edit_synopsis[ $syn_key ] );
+					}
+				}
 				WP_CLI::add_command( "{$parent} edit", array( $rest_command, 'edit_item' ), array(
-					'synopsis'      => $synopsis,
+					'synopsis'      => $edit_synopsis,
 					'when'          => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
 				) );
 			}
-
 		}
 	}
-
 }
