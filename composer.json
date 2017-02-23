@@ -1,37 +1,41 @@
 {
-    "name": "wp-cli/restful",
-    "description": "Unlock the potential of the WP REST API at the command line.",
-	"type": "wp-cli-package",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Daniel Bachhuber",
-            "email": "daniel@handbuilt.co"
-        }
-    ],
-    "minimum-stability": "dev",
-    "autoload": {
-        "files": [ "wp-rest-cli.php" ]
-    },
-    "require": {},
-    "require-dev": {
-        "behat/behat": "~2.5"
-    },
-    "extras": {
-        "commands": [
-            "rest user list",
-            "rest user generate"
-        ],
-        "readme": {
-            "package_description": {
-                "post": "bin/readme-stubs/package-description-post.md"
-            },
-            "using": {
-                "body": "bin/readme-stubs/using.md"
-            },
-            "installing": {
-                "body": "bin/readme-stubs/installing.md"
-            }
-        }
+  "name": "wp-cli/restful",
+  "description": "Unlock the potential of the WP REST API at the command line.",
+  "type": "wp-cli-package",
+  "license": "MIT",
+  "authors": [{
+      "name": "Daniel Bachhuber",
+      "email": "daniel@handbuilt.co"
+    }, {
+      "name": "Dale Phurrough",
+      "email": "dale@hidale.com",
+      "homepage": "https://hidale.com",
+      "role": "Developer"
     }
+  ],
+  "minimum-stability": "dev",
+  "autoload": {
+    "files": ["wp-rest-cli.php"]
+  },
+  "require": {},
+  "require-dev": {
+    "behat/behat": "~2.5"
+  },
+  "extras": {
+    "commands": [
+      "rest user list",
+      "rest user generate"
+    ],
+    "readme": {
+      "package_description": {
+        "post": "bin/readme-stubs/package-description-post.md"
+      },
+      "using": {
+        "body": "bin/readme-stubs/using.md"
+      },
+      "installing": {
+        "body": "bin/readme-stubs/installing.md"
+      }
+    }
+  }
 }
