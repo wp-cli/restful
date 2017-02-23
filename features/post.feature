@@ -2,7 +2,6 @@ Feature: Manage WordPress posts through the REST API
 
   Background:
     Given a WP install
-    And I run `wp plugin install rest-api --activate`
 
   Scenario: Get the value of an individual post field
     When I run `wp rest post get 1 --field=title`
