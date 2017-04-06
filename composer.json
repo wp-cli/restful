@@ -10,6 +10,7 @@
         }
     ],
     "minimum-stability": "dev",
+    "prefer-stable": true,
     "autoload": {
         "files": [ "wp-rest-cli.php" ]
     },
@@ -18,6 +19,9 @@
         "behat/behat": "~2.5"
     },
     "extras": {
+        "branch-alias": {
+            "dev-master": "1.x-dev"
+        },
         "commands": [
             "rest user list",
             "rest user generate"
