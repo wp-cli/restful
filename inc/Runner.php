@@ -50,6 +50,9 @@ class Runner {
 	}
 
 	public static function after_wp_load() {
+		if ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) {
+			return;
+		}
 		if ( ! class_exists( 'WP_REST_Server' ) ) {
 			return;
 		}
