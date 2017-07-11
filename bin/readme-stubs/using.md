@@ -1,10 +1,10 @@
-RESTful WP-CLI makes [WP REST API](http://v2.wp-api.org/) endpoints available as [WP-CLI](http://wp-cli.org/) commands.
+RESTful WP-CLI makes [WP REST API](https://developer.wordpress.org/rest-api/reference/) endpoints available as [WP-CLI](http://wp-cli.org/) commands.
 
 As WordPress becomes more of an application framework embedded into the web, RESTful WP-CLI enables WP-CLI users to interact with a given WordPress install through the higher-level, self-expressed abstraction of how WordPress understands itself. For instance, on an eCommerce website, instead of having to know data is stored as `wp post list --post_type=edd_product`, RESTful WP-CLI exposes the properly-modeled data at `wp rest product list`.
 
 Here's an overview of how RESTful WP-CLI works, in two parts.
 
-### 1. Auto-discovers WP REST API endpoints from any WordPress site running WordPress 4.4 or higher
+### 1. Auto-discovers WP REST API endpoints from any WordPress site running WordPress 4.7 or higher
 
 Target a specific WordPress install with `--path=<path>`, `--ssh=<host>`, or `--http=<domain>`:
 
