@@ -5,7 +5,7 @@ Unlock the potential of the WP REST API at the command line.
 
 **Warning:** This project is at a very early stage. Treat it as an experiment, and understand that breaking changes will be made without warning. The sky may also fall on your head. Using RESTful WP-CLI requires the latest nightly build of [WP-CLI](http://wp-cli.org/), which you can install with `wp cli update --nightly`.
 
-Project backed by [Pressed](https://www.pressed.net/), [Chris Lema](https://chrislema.com/), [Human Made](https://hmn.md/), [Pagely](https://pagely.com/), [Pantheon](https://pantheon.io/) and many others. [Learn more →](http://wp-cli.org/restful/)
+Initial development was [backed by a Kickstarter project](https://wp-cli.org/restful/). This project will evolve alongside the WP REST API's evolution in WordPress core.
 
 [![Build Status](https://travis-ci.org/wp-cli/restful.svg?branch=master)](https://travis-ci.org/wp-cli/restful)
 
@@ -13,13 +13,13 @@ Quick links: [Using](#using) | [Installing](#installing) | [Contributing](#contr
 
 ## Using
 
-RESTful WP-CLI makes [WP REST API](http://v2.wp-api.org/) endpoints available as [WP-CLI](http://wp-cli.org/) commands.
+RESTful WP-CLI makes [WP REST API](https://developer.wordpress.org/rest-api/reference/) endpoints available as [WP-CLI](http://wp-cli.org/) commands.
 
 As WordPress becomes more of an application framework embedded into the web, RESTful WP-CLI enables WP-CLI users to interact with a given WordPress install through the higher-level, self-expressed abstraction of how WordPress understands itself. For instance, on an eCommerce website, instead of having to know data is stored as `wp post list --post_type=edd_product`, RESTful WP-CLI exposes the properly-modeled data at `wp rest product list`.
 
 Here's an overview of how RESTful WP-CLI works, in two parts.
 
-### 1. Auto-discovers WP REST API endpoints from any WordPress site running WordPress 4.4 or higher
+### 1. Auto-discovers WP REST API endpoints from any WordPress site running WordPress 4.7 or higher
 
 Target a specific WordPress install with `--path=<path>`, `--ssh=<host>`, or `--http=<domain>`:
 
@@ -122,7 +122,7 @@ There are many things RESTful WP-CLI can't yet do. Please [review the issue back
 
 ## Installing
 
-Installing this package requires WP-CLI 0.24.0-alpha or greater. Update to the latest nightly release with `wp cli update --nightly`.
+Installing this package requires WP-CLI 1.3.0-alpha or greater. Update to the latest nightly release with `wp cli update --nightly`.
 
 Once you've done so, you can install this package with `wp package install wp-cli/restful`.
 
