@@ -20,14 +20,10 @@
     "require-dev": {
         "behat/behat": "~2.5"
     },
-    "extras": {
+    "extra": {
         "branch-alias": {
             "dev-master": "1.x-dev"
         },
-        "commands": [
-            "rest user list",
-            "rest user generate"
-        ],
         "readme": {
             "package_description": {
                 "post": "bin/readme-stubs/package-description-post.md"
