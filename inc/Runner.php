@@ -96,7 +96,8 @@ class Runner {
 			return false;
 		}
 		$bits = explode( ';', $response->headers['link'] );
-		if ( 'rel="https://api.w.org/"' !== trim( $bits[1] ) ) {
+		$bits2 = explode( ',', $bits[1]);
+		if ( 'rel="https://api.w.org/"' !== trim( $bits2[0] ) ) {
 			return false;
 		}
 		return trim( $bits[0], '<>' );
