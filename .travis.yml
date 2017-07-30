@@ -26,4 +26,4 @@ env:
 before_script:
   - bash bin/install-package-tests.sh
 
-script: ./vendor/bin/behat
+script: phpunit && ./vendor/bin/behat

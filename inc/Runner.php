@@ -95,11 +95,18 @@ class Runner {
 		if ( empty( $response->headers['link'] ) ) {
 			return false;
 		}
-		$bits = explode( ';', $response->headers['link'] );
-		if ( 'rel="https://api.w.org/"' !== trim( $bits[1] ) ) {
+		if ( ! self::discover_wp_api( $response->headers['link'] ) ) {
 			return false;
 		}
 		return trim( $bits[0], '<>' );
+	}
+
+	private static function discover_wp_api( $link_headers ) {
+		if ( false !== strpos( $link_headers, 'rel="https://api.w.org/"' ) ) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	/**
