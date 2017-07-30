@@ -95,8 +95,8 @@ class Runner {
 		if ( empty( $response->headers['link'] ) ) {
 			return false;
 		}
-		$bits = explode( ';', $response->headers['link'] );
-		if ( 'rel="https://api.w.org/"' !== trim( $bits[1] ) ) {
+		$bits = preg_split( "/[\s,]+|[\s;]+/", $response->headers['link'] );
+		if ( !in_array( 'rel="https://api.w.org/"', $bits ) ) {
 			return false;
 		}
 		return trim( $bits[0], '<>' );
