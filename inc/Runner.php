@@ -95,11 +95,18 @@ class Runner {
 		if ( empty( $response->headers['link'] ) ) {
 			return false;
 		}
-		$bits = preg_split( "/[\s,]+|[\s;]+/", $response->headers['link'] );
-		if ( !in_array( 'rel="https://api.w.org/"', $bits ) ) {
+		if ( ! self::discover_wp_api( $response->headers['link'] ) ) {
 			return false;
 		}
 		return trim( $bits[0], '<>' );
+	}
+
+	private static function discover_wp_api( $link_headers ) {
+		if ( false !== strpos( $link_headers, 'rel="https://api.w.org/"' ) ) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	/**
