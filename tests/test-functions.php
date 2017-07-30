@@ -5,8 +5,8 @@ class Runner_Test extends PHPUnit_Framework_TestCase {
 	public function setUp() {
 		$runner = new \WP_REST_CLI\Runner();
 		$reflection = new \ReflectionClass( $runner );
-		$method = $reflection->getMethod('discover_wp_api');
-		$method->setAccessible(true);
+		$method = $reflection->getMethod( 'discover_wp_api' );
+		$method->setAccessible( true );
 
 		$this->method = $method;
 	}
