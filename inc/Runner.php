@@ -95,18 +95,17 @@ class Runner {
 		if ( empty( $response->headers['link'] ) ) {
 			return false;
 		}
-		if ( ! self::discover_wp_api( $response->headers['link'] ) ) {
+		if ( ! ( $endpoint = self::discover_wp_api( $response->headers['link'] ) ) ) {
 			return false;
 		}
-		return trim( $bits[0], '<>' );
+		return $endpoint;
 	}
 
 	private static function discover_wp_api( $link_headers ) {
-		if ( false !== strpos( $link_headers, 'rel="https://api.w.org/"' ) ) {
-			return true;
-		} else {
-			return false;
+		if ( preg_match( '#<([^>]+)> *; *rel="https://api.w.org/"#', $link_headers, $matches ) ) {
+			return $matches[1];
 		}
+		return false;
 	}
 
 	/**
