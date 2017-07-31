@@ -102,12 +102,8 @@ class Runner {
 	}
 
 	private static function discover_wp_api( $link_headers ) {
-		$links = explode( ",", $link_headers );
-		foreach ( $links as $link ) {
-			if ( false !== strpos( $link, 'rel="https://api.w.org/"' ) ) {
-				$bits = explode( ";", trim( $link ) );
-				return trim( trim( $bits[0] ), '<>' );
-			}
+		if ( preg_match( '#<([^>]+)> *; *rel="https://api.w.org/"#', $link_headers, $matches ) ) {
+			return $matches[1];
 		}
 		return false;
 	}
