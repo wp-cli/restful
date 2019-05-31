@@ -500,8 +500,8 @@ EOT;
 	 *
 	 * @param string $object_type
 	 *
-	 *@see \WP_REST_Controller::get_additional_fields
-	 *
+	 * @see \WP_REST_Controller::get_additional_fields
+	 * @return array
 	 */
 	private function get_additional_fields( $object_type ) {
 		global $wp_rest_additional_fields;
