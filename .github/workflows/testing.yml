@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches:
+      - main
       - master
 
 # Cancels all previous workflow runs for the same branch that have not yet completed.
@@ -46,7 +47,7 @@ jobs:
         if: steps.check_files.outputs.files_exists == 'true'
         uses: "ramsey/composer-install@v2"
         env:
-          COMPOSER_ROOT_VERSION: 'dev-master'
+          COMPOSER_ROOT_VERSION: 'dev-main'
 
       - name: Setup problem matcher to provide annotations for PHPUnit
         if: steps.check_files.outputs.files_exists == 'true'
@@ -86,6 +87,9 @@ jobs:
           - php: '8.0'
             wp: 'trunk'
             mysql: '5.6'
+          - php: '8.1'
+            wp: 'trunk'
+            mysql: '8.0'
           - php: '5.6'
             wp: '3.7'
             mysql: '5.6'
@@ -134,7 +138,7 @@ jobs:
         if: steps.check_files.outputs.files_exists == 'true'
         uses: "ramsey/composer-install@v2"
         env:
-          COMPOSER_ROOT_VERSION: 'dev-master'
+          COMPOSER_ROOT_VERSION: 'dev-main'
 
       - name: Start MySQL server
         if: steps.check_files.outputs.files_exists == 'true'
