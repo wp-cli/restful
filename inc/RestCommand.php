@@ -482,8 +482,37 @@ EOT;
 				$fields[] = $key;
 			}
 		}
+
+		foreach( $this->get_additional_fields( $this->schema['title'] ) as $field_name => $field ) {
+			// For back-compat, include any field with an empty schema
+			// because it won't be present in $this->get_item_schema().
+			// @see \WP_REST_Controller::get_fields_for_response
+			if ( is_null( $field['schema'] ) ) {
+				$fields[] = $field_name;
+			}
+		}
 		return $fields;
 	}
+
+	/**
+	 * Retrieves all of the registered additional fields for a given object-type.
+	 * Here because the Rest Controller's method is protected.
+	 *
+	 * @param string $object_type
+	 *
+	 * @see \WP_REST_Controller::get_additional_fields
+	 * @return array
+	 */
+	private function get_additional_fields( $object_type ) {
+		global $wp_rest_additional_fields;
+
+		if ( ! $wp_rest_additional_fields || ! isset( $wp_rest_additional_fields[ $object_type ] ) ) {
+			return array();
+		}
+
+		return $wp_rest_additional_fields[ $object_type ];
+	}
+
 
 	/**
 	 * Get the base route for this resource
@@ -558,7 +587,7 @@ EOT;
 
 			foreach( $dictated as $value ) {
 
-				if ( ! $current 
+				if ( ! $current
 					|| ! in_array( $value, $current ) ) {
 					$this->add_line( '- ' . $value );
 				}
