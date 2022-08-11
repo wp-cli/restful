@@ -7,7 +7,7 @@ Unlock the potential of the WP REST API at the command line.
 
 Initial development was [backed by a Kickstarter project](https://wp-cli.org/restful/). This project will evolve alongside the WP REST API's evolution in WordPress core.
 
-[![Testing](https://github.com/wp-cli/restful/actions/workflows/testing.yml/badge.svg)](https://github.com/wp-cli/restful/actions/workflows/testing.yml) [![Build Status](https://travis-ci.org/wp-cli/restful.svg?branch=master)](https://travis-ci.org/wp-cli/restful)
+[![Testing](https://github.com/wp-cli/restful/actions/workflows/testing.yml/badge.svg)](https://github.com/wp-cli/restful/actions/workflows/testing.yml) [![Build Status](https://travis-ci.org/wp-cli/restful.svg?branch=main)](https://travis-ci.org/wp-cli/restful)
 
 Quick links: [Using](#using) | [Installing](#installing) | [Contributing](#contributing) | [Support](#support)
 
