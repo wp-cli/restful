@@ -171,7 +171,7 @@ class RestCommand {
 
 		if ( ! empty( $assoc_args['fields'] ) ) {
 			foreach( $items as $key => $item ) {
-				$items[ $key ] = self::limit_item_to_fields( $item, $fields );
+				$items[ $key ] = self::limit_item_to_fields( $item, $assoc_args['fields'] );
 			}
 		}
 
