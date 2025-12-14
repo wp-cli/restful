@@ -1,3 +1,3 @@
 <?php
 
-require dirname( dirname( __FILE__ ) ) . '/inc/Runner.php';
+require dirname( __DIR__ ) . '/inc/Runner.php';
