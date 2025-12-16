@@ -40,4 +40,12 @@
 		 https://github.com/PHPCompatibility/PHPCompatibility#sniffing-your-code-for-compatibility-with-specific-php-versions -->
 	<config name="testVersion" value="7.2-"/>
 
+	<!-- Verify that everything in the global namespace is either namespaced or prefixed -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="WP_REST_CLI"/>
+			</property>
+		</properties>
+	</rule>
 </ruleset>

@@ -12,13 +12,19 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "autoload": {
-        "files": [ "wp-rest-cli.php" ]
+        "psr-4": {
+            "WP_REST_CLI\\": "inc/"
+        },
+        "files": [
+            "wp-rest-cli.php"
+        ]
     },
     "require": {
         "wp-cli/wp-cli": "^2.12"
     },
     "require-dev": {
-        "wp-cli/wp-cli-tests": "^5.0"
+        "wp-cli/wp-cli-tests": "^5.0",
+        "wp-cli/entity-command": "^2.8"
     },
     "extra": {
         "branch-alias": {

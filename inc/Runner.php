@@ -27,6 +27,7 @@ class Runner {
 		if ( ! $api_index ) {
 			WP_CLI::error( "Couldn't find index data from {$api_url}." );
 		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
 		$bits = parse_url( $http );
 		$auth = array();
 		if ( ! empty( $bits['user'] ) ) {
@@ -56,9 +57,13 @@ class Runner {
 			return;
 		}
 
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 		global $wp_rest_server;
 
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 		$wp_rest_server = new WP_REST_Server();
+
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 		do_action( 'rest_api_init', $wp_rest_server );
 
 		$request = new WP_REST_Request( 'GET', '/' );
@@ -94,7 +99,8 @@ class Runner {
 		if ( empty( $response->headers['link'] ) ) {
 			return false;
 		}
-		if ( ! ( $endpoint = self::discover_wp_api( $response->headers['link'] ) ) ) {
+		$endpoint = self::discover_wp_api( $response->headers['link'] );
+		if ( ! $endpoint ) {
 			return false;
 		}
 		return $endpoint;
@@ -139,36 +145,33 @@ class Runner {
 			$parsed_args   = preg_match_all( '#\([^\)]+\)#', $route, $matches );
 			$resource_id   = ! empty( $matches[0] ) ? array_pop( $matches[0] ) : null;
 			$trimmed_route = rtrim( $route );
-			$is_singular   = $resource_id && $resource_id === substr( $trimmed_route, - strlen( $resource_id ) );
+			$is_singular   = $resource_id && substr( $trimmed_route, - strlen( $resource_id ) ) === $resource_id;
 
 			$command = '';
 			// List a collection
-			if ( array( 'GET' ) == $endpoint['methods']
+			if ( array( 'GET' ) === $endpoint['methods']
 				&& ! $is_singular ) {
 				$supported_commands['list'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 
 			// Create a specific resource
-			if ( array( 'POST' ) == $endpoint['methods']
+			if ( array( 'POST' ) === $endpoint['methods']
 				&& ! $is_singular ) {
 				$supported_commands['create'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 
 			// Get a specific resource
-			if ( array( 'GET' ) == $endpoint['methods']
-				&& $is_singular ) {
+			if ( array( 'GET' ) === $endpoint['methods'] && $is_singular ) {
 				$supported_commands['get'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 
 			// Update a specific resource
-			if ( in_array( 'POST', $endpoint['methods'] )
-				&& $is_singular ) {
+			if ( in_array( 'POST', $endpoint['methods'], true ) && $is_singular ) {
 				$supported_commands['update'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 
 			// Delete a specific resource
-			if ( array( 'DELETE' ) == $endpoint['methods']
-				&& $is_singular ) {
+			if ( array( 'DELETE' ) === $endpoint['methods'] && $is_singular ) {
 				$supported_commands['delete'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
 			}
 		}
@@ -176,7 +179,7 @@ class Runner {
 		foreach ( $supported_commands as $command => $endpoint_args ) {
 
 			$synopsis = array();
-			if ( in_array( $command, array( 'delete', 'get', 'update' ) ) ) {
+			if ( in_array( $command, array( 'delete', 'get', 'update' ), true ) ) {
 				$synopsis[] = array(
 					'name'        => 'id',
 					'type'        => 'positional',
@@ -201,7 +204,7 @@ class Runner {
 				$synopsis[] = $arg_reg;
 			}
 
-			if ( in_array( $command, array( 'list', 'get' ) ) ) {
+			if ( in_array( $command, array( 'list', 'get' ), true ) ) {
 				$synopsis[] = array(
 					'name'        => 'fields',
 					'type'        => 'assoc',
@@ -234,7 +237,7 @@ class Runner {
 				);
 			}
 
-			if ( in_array( $command, array( 'create', 'update', 'delete' ) ) ) {
+			if ( in_array( $command, array( 'create', 'update', 'delete' ), true ) ) {
 				$synopsis[] = array(
 					'name'        => 'porcelain',
 					'type'        => 'flag',
@@ -255,6 +258,7 @@ class Runner {
 			if ( empty( $command_args['when'] ) && WP_CLI::get_config( 'debug' ) ) {
 				$before_invoke = function () {
 					if ( ! defined( 'SAVEQUERIES' ) ) {
+						// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
 						define( 'SAVEQUERIES', true );
 					}
 				};

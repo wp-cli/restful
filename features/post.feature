@@ -22,7 +22,7 @@ Feature: Manage WordPress posts through the REST API
     Then STDOUT should be a number
 
   Scenario: Generate posts
-    When I run `wp rest post list --format=count`
+    When I run `wp post list --format=count`
     Then STDOUT should be:
       """
       1
@@ -31,7 +31,7 @@ Feature: Manage WordPress posts through the REST API
     When I run `wp rest post generate --user=admin --status=publish --title="Test Post"`
     Then STDERR should be empty
 
-    When I run `wp rest post list --format=count`
+    When I run `wp post list --format=count`
     Then STDOUT should be:
       """
       11
@@ -40,7 +40,7 @@ Feature: Manage WordPress posts through the REST API
     When I run `wp rest post generate --user=admin --status=publish --count=9 --title="Test Post"`
     Then STDOUT should be empty
 
-    When I run `wp rest post list --format=count`
+    When I run `wp post list --format=count`
     Then STDOUT should be:
       """
       20

@@ -129,7 +129,7 @@ class RestCommand {
 		list( $status, $body, $headers ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
 
 		if ( ! empty( $assoc_args['fields'] ) ) {
-			$body = self::limit_item_to_fields( $body, $fields );
+			$body = self::limit_item_to_fields( $body, $assoc_args['fields'] );
 		}
 
 		if ( 'headers' === $assoc_args['format'] ) {
@@ -244,7 +244,7 @@ class RestCommand {
 		if ( ! is_null( $resource ) ) {
 			$field    = is_numeric( $resource ) ? 'id' : 'slug';
 			$callback = function ( $value ) use ( $field, $resource ) {
-				if ( isset( $value[ $field ] ) && $resource == $value[ $field ] ) {
+				if ( isset( $value[ $field ] ) && $resource === $value[ $field ] ) {
 					return true;
 				}
 				return false;
@@ -256,7 +256,8 @@ class RestCommand {
 
 		$display_items = array();
 		do {
-			$from_item = $to_item = array();
+			$from_item = array();
+			$to_item   = array();
 			if ( ! empty( $from_body ) ) {
 				$from_item = array_shift( $from_body );
 				if ( ! empty( $to_body ) && ! empty( $from_item['slug'] ) ) {
@@ -274,8 +275,8 @@ class RestCommand {
 
 			if ( ! empty( $to_item ) ) {
 				foreach ( array( 'to_item', 'from_item' ) as $item ) {
-					if ( isset( $$item['_links'] ) ) {
-						unset( $$item['_links'] );
+					if ( isset( $item['_links'] ) ) {
+						unset( $item['_links'] );
 					}
 				}
 				$display_items[] = array(
@@ -283,7 +284,10 @@ class RestCommand {
 					'to'   => self::limit_item_to_fields( $to_item, $fields ),
 				);
 			}
-		} while ( count( $from_body ) || count( $to_body ) );
+
+			$from_count = count( $from_body );
+			$to_count   = count( $to_body );
+		} while ( $from_count || $to_count );
 
 		WP_CLI::line( \cli\Colors::colorize( "%R(-) {$this->api_url} %G(+) {$to_api_url}%n" ) );
 		foreach ( $display_items as $display_item ) {
@@ -368,10 +372,11 @@ class RestCommand {
 	private function do_request( $method, $route, $assoc_args ) {
 		if ( 'internal' === $this->scope ) {
 			if ( ! defined( 'REST_REQUEST' ) ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
 				define( 'REST_REQUEST', true );
 			}
 			$request = new \WP_REST_Request( $method, $route );
-			if ( in_array( $method, array( 'POST', 'PUT' ) ) ) {
+			if ( in_array( $method, array( 'POST', 'PUT' ), true ) ) {
 				$request->set_body_params( $assoc_args );
 			} else {
 				foreach ( $assoc_args as $key => $value ) {
@@ -385,7 +390,7 @@ class RestCommand {
 			if ( defined( 'SAVEQUERIES' ) && SAVEQUERIES ) {
 				$performed_queries = array();
 				foreach ( (array) $GLOBALS['wpdb']->queries as $key => $query ) {
-					if ( in_array( $key, $original_queries ) ) {
+					if ( in_array( $key, $original_queries, true ) ) {
 						continue;
 					}
 					$performed_queries[] = $query;
@@ -427,13 +432,15 @@ EOT;
 				$query_total_time = round( $query_total_time, 6 );
 				WP_CLI::debug( "REST command executed {$query_count} queries in {$query_total_time} seconds{$slow_query_message}", 'rest' );
 			}
-			if ( $error = $response->as_error() ) {
+			$error = $response->as_error();
+			if ( $error ) {
 				WP_CLI::error( $error );
 			}
 			return array( $response->get_status(), $response->get_data(), $response->get_headers() );
 		} elseif ( 'http' === $this->scope ) {
 			$headers = array();
 			if ( ! empty( $this->auth ) && 'basic' === $this->auth['type'] ) {
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 				$headers['Authorization'] = 'Basic ' . base64_encode( $this->auth['username'] . ':' . $this->auth['password'] );
 			}
 			if ( 'OPTIONS' === $method ) {
@@ -491,7 +498,7 @@ EOT;
 	private function get_context_fields( $context ) {
 		$fields = array();
 		foreach ( $this->schema['properties'] as $key => $args ) {
-			if ( empty( $args['context'] ) || in_array( $context, $args['context'] ) ) {
+			if ( empty( $args['context'] ) || in_array( $context, $args['context'], true ) ) {
 				$fields[] = $key;
 			}
 		}
@@ -596,29 +603,9 @@ EOT;
 		} elseif ( is_array( $dictated ) ) {
 
 			foreach ( $dictated as $value ) {
-
-				if ( ! $current
-					|| ! in_array( $value, $current ) ) {
+				if ( ! $current || ! in_array( $value, $current, true ) ) {
 					$this->add_line( '- ' . $value );
 				}
-			}
-		} elseif ( is_string( $value ) ) {
-
-			$pre = $key . ': ';
-
-			if ( isset( $current[ $key ] ) && $current[ $key ] !== $value ) {
-
-				$this->remove_line( $pre . $current[ $key ] );
-				$this->add_line( $pre . $value );
-
-			} elseif ( ! isset( $current[ $key ] ) ) {
-
-				$this->add_line( $pre . $value );
-
-			} else {
-
-				$this->nested_line( $pre );
-
 			}
 		}
 
@@ -648,10 +635,10 @@ EOT;
 	 */
 	private function nested_line( $line, $change = false ) {
 
-		if ( 'add' == $change ) {
+		if ( 'add' === $change ) {
 			$color = '%G';
 			$label = '+ ';
-		} elseif ( 'remove' == $change ) {
+		} elseif ( 'remove' === $change ) {
 			$color = '%R';
 			$label = '- ';
 		} else {
@@ -670,16 +657,20 @@ EOT;
 	/**
 	 * Whether or not this is an associative array
 	 *
-	 * @param array
+	 * @param array $arr
 	 * @return bool
 	 */
-	private function is_assoc_array( $array ) {
-
-		if ( ! is_array( $array ) ) {
+	private function is_assoc_array( $arr ) {
+		if ( ! is_array( $arr ) ) {
 			return false;
 		}
 
-		return array_keys( $array ) !== range( 0, count( $array ) - 1 );
+		if ( function_exists( 'array_is_list' ) ) {
+			// phpcs:ignore PHPCompatibility.FunctionUse.NewFunctions.array_is_listFound
+			return ! array_is_list( $arr );
+		}
+
+		return array_keys( $arr ) !== range( 0, count( $arr ) - 1 );
 	}
 
 	/**
@@ -697,7 +688,7 @@ EOT;
 			$fields = explode( ',', $fields );
 		}
 		foreach ( $item as $i => $field ) {
-			if ( ! in_array( $i, $fields ) ) {
+			if ( ! in_array( $i, $fields, true ) ) {
 				unset( $item[ $i ] );
 			}
 		}
