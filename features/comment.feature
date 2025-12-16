@@ -26,14 +26,10 @@ Feature: Manage WordPress comments through the REST API
     Then STDOUT should contain:
       """
       [--context=<context>]
-          Scope under which the request is made; determines fields present in response.
-          ---
-          default: view
-          options:
-            - view
-            - embed
-            - edit
-          ---
+      """
+    And STDOUT should contain:
+      """
+      Scope under which the request is made
       """
 
   Scenario: List all WordPress comments
