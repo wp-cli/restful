@@ -1,14 +1,26 @@
-<phpunit
-	bootstrap="tests/bootstrap.php"
-	backupGlobals="false"
-	colors="true"
-	convertErrorsToExceptions="true"
-	convertNoticesToExceptions="true"
-	convertWarningsToExceptions="true"
-	>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/4.8/phpunit.xsd"
+		 bootstrap="vendor/autoload.php"
+		 backupGlobals="false"
+		 beStrictAboutCoversAnnotation="true"
+		 beStrictAboutOutputDuringTests="true"
+		 beStrictAboutTestsThatDoNotTestAnything="true"
+		 beStrictAboutTodoAnnotatedTests="true"
+		 convertErrorsToExceptions="true"
+		 convertWarningsToExceptions="true"
+		 convertNoticesToExceptions="true"
+		 convertDeprecationsToExceptions="true"
+		 colors="true"
+		 verbose="true">
 	<testsuites>
-		<testsuite>
-			<directory prefix="test-" suffix=".php">./tests/</directory>
+		<testsuite name="wp-cli/restful tests">
+			<directory suffix="Test.php">tests</directory>
 		</testsuite>
 	</testsuites>
+
+	<coverage processUncoveredFiles="false">
+		<include>
+			<directory suffix=".php">src</directory>
+		</include>
+	</coverage>
 </phpunit>
