@@ -29,17 +29,6 @@
     "extra": {
         "branch-alias": {
             "dev-main": "1.x-dev"
-        },
-        "readme": {
-            "package_description": {
-                "post": "bin/readme-stubs/package-description-post.md"
-            },
-            "using": {
-                "body": "bin/readme-stubs/using.md"
-            },
-            "installing": {
-                "body": "bin/readme-stubs/installing.md"
-            }
         }
     },
     "config": {
