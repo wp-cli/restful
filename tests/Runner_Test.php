@@ -1,8 +1,11 @@
 <?php
 
-class Runner_Test extends PHPUnit_Framework_TestCase {
+use WP_CLI\Tests\TestCase;
 
-	public function setUp() {
+class Runner_Test extends TestCase {
+	protected $method;
+
+	public function set_up() {
 		$runner     = new \WP_REST_CLI\Runner();
 		$reflection = new \ReflectionClass( $runner );
 		$method     = $reflection->getMethod( 'discover_wp_api' );
