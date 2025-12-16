@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<ruleset name="WP-CLI-handbook">
+<ruleset name="WP-CLI-restful">
 	<description>Custom ruleset for WP-CLI command</description>
 
 	<!--
