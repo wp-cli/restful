@@ -2,3 +2,9 @@ composer.lock
 .DS_Store
 /vendor
 wp-cli.local.yml
+.phpunit.result.cache
+.phpunit.cache
+build/logs
+phpunit.xml
+phpcs.xml
+.phpcs.xml

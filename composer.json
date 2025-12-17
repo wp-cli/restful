@@ -1,7 +1,7 @@
 {
     "name": "wp-cli/restful",
     "description": "Unlock the potential of the WP REST API at the command line.",
-	"type": "wp-cli-package",
+	  "type": "wp-cli-package",
     "license": "MIT",
     "authors": [
         {
@@ -12,28 +12,46 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "autoload": {
-        "files": [ "wp-rest-cli.php" ]
+        "psr-4": {
+            "WP_REST_CLI\\": "inc/"
+        },
+        "files": [
+            "wp-rest-cli.php"
+        ]
     },
     "require": {
-        "wp-cli/wp-cli": "*"
+        "wp-cli/wp-cli": "^2.12"
     },
     "require-dev": {
-        "behat/behat": "~3.15"
+        "wp-cli/wp-cli-tests": "^5.0",
+        "wp-cli/entity-command": "^2.8"
     },
     "extra": {
         "branch-alias": {
             "dev-main": "1.x-dev"
-        },
-        "readme": {
-            "package_description": {
-                "post": "bin/readme-stubs/package-description-post.md"
-            },
-            "using": {
-                "body": "bin/readme-stubs/using.md"
-            },
-            "installing": {
-                "body": "bin/readme-stubs/installing.md"
-            }
         }
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "scripts": {
+        "behat": "run-behat-tests",
+        "behat-rerun": "rerun-behat-tests",
+        "lint": "run-linter-tests",
+        "phpcs": "run-phpcs-tests",
+        "phpcbf": "run-phpcbf-cleanup",
+        "phpstan": "run-phpstan-tests",
+        "phpunit": "run-php-unit-tests",
+        "prepare-tests": "install-package-tests",
+        "test": [
+            "@lint",
+            "@phpcs",
+            "@phpstan",
+            "@phpunit",
+            "@behat"
+        ]
     }
 }
