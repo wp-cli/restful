@@ -32,6 +32,7 @@ Feature: Manage WordPress comments through the REST API
       Scope under which the request is made
       """
 
+  @less-than-wp-7.0
   Scenario: List all WordPress comments
     When I run `wp rest comment list --fields=id,author_name`
     Then STDOUT should be a table containing rows:
@@ -60,6 +61,37 @@ Feature: Manage WordPress comments through the REST API
     Then STDOUT should be JSON containing:
       """
       {"headers":{"X-WP-TotalPages":1}}
+      """
+
+  @require-wp-7.0
+  Scenario: List all WordPress comments
+    When I run `wp rest comment list --fields=id,author_name`
+    Then STDOUT should be a table containing rows:
+    | id     | author_name           |
+    | 1      | A WordPress Commenter |
+
+    When I run `wp rest comment list --format=ids`
+    Then STDOUT should be:
+      """
+      1
+      """
+
+    When I run `wp rest comment list --format=body`
+    Then STDOUT should be JSON containing:
+      """
+      [{"author_name":"A WordPress Commenter"}]
+      """
+
+    When I run `wp rest comment list --format=headers`
+    Then STDOUT should be JSON containing:
+      """
+      {"X-WP-TotalPages":"1"}
+      """
+
+    When I run `wp rest comment list --format=envelope`
+    Then STDOUT should be JSON containing:
+      """
+      {"headers":{"X-WP-TotalPages":"1"}}
       """
 
   # TODO: Investigate "Error: Unknown context 'embed'" failure.
