@@ -21,7 +21,7 @@ class RestCommand {
 	public function __construct( $name, $route, $schema ) {
 		$this->name                = $name;
 		$parsed_args               = preg_match_all( '#\([^\)]+\)#', $route, $matches );
-		$this->resource_identifier = ! empty( $matches[0] ) ? array_pop( $matches[0] ) : null;
+		$this->resource_identifier = ! empty( $matches[0] ) ? array_pop( $matches[0] ) : '';
 		$this->route               = rtrim( $route );
 		$this->schema              = $schema;
 	}
