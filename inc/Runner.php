@@ -30,11 +30,33 @@ class Runner {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
 		$bits = parse_url( $http );
 		$auth = array();
+
+		// Check wp-cli config for http_user / http_password (lowest priority).
+		$runner = WP_CLI::get_runner();
+		if ( ! empty( $runner->config['http_user'] ) ) {
+			$auth['type']     = 'basic';
+			$auth['username'] = $runner->config['http_user'];
+			$auth['password'] = ! empty( $runner->config['http_password'] ) ? $runner->config['http_password'] : '';
+		}
+
+		// Environment variables override config file values (medium priority).
+		// An empty username is not valid for authentication, so we skip if it is empty.
+		// An empty password is allowed (e.g. passwordless setups), consistent with URL embedding.
+		$env_user     = getenv( 'WP_REST_CLI_AUTH_USER' );
+		$env_password = getenv( 'WP_REST_CLI_AUTH_PASSWORD' );
+		if ( false !== $env_user && '' !== $env_user ) {
+			$auth['type']     = 'basic';
+			$auth['username'] = $env_user;
+			$auth['password'] = ( false !== $env_password ) ? $env_password : '';
+		}
+
+		// Credentials embedded in the --http URL take highest priority.
 		if ( ! empty( $bits['user'] ) ) {
 			$auth['type']     = 'basic';
 			$auth['username'] = $bits['user'];
 			$auth['password'] = ! empty( $bits['pass'] ) ? $bits['pass'] : '';
 		}
+
 		foreach ( $api_index['routes'] as $route => $route_data ) {
 			if ( empty( $route_data['schema']['title'] ) ) {
 				WP_CLI::debug( "No schema title found for {$route}, skipping REST command registration.", 'rest' );
