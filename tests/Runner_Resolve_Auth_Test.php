@@ -1,6 +1,7 @@
 <?php
 
 use WP_CLI\Tests\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 class Runner_Resolve_Auth_Test extends TestCase {
 
@@ -119,6 +120,7 @@ class Runner_Resolve_Auth_Test extends TestCase {
 	/**
 	 * @dataProvider provide_url_credentials
 	 */
+	#[DataProvider( 'provide_url_credentials' )] // phpcs:ignore PHPCompatibility.Attributes.NewAttributes.PHPUnitAttributeFound
 	public function test_url_credentials( $url, $expected_user, $expected_pass ) {
 		$auth = \WP_REST_CLI\Runner::resolve_auth( $url );
 		$this->assertSame(
@@ -131,7 +133,7 @@ class Runner_Resolve_Auth_Test extends TestCase {
 		);
 	}
 
-	public function provide_url_credentials() {
+	public static function provide_url_credentials() {
 		return array(
 			'no scheme'        => array( 'urluser:urlpass@example.com', 'urluser', 'urlpass' ),
 			'https scheme'     => array( 'https://urluser:urlpass@example.com', 'urluser', 'urlpass' ),
