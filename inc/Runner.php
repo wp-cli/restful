@@ -136,24 +136,23 @@ class Runner {
 	 * @return array Auth array with 'type', 'username', 'password' keys, or empty array.
 	 */
 	public static function resolve_auth( $http, array $config = array() ) {
-		$auth = array();
+		$username = null;
+		$password = '';
 
 		// Lowest priority: wp-cli config (http_user / http_password).
 		if ( ! empty( $config['http_user'] ) ) {
-			$auth['type']     = 'basic';
-			$auth['username'] = $config['http_user'];
-			$auth['password'] = ! empty( $config['http_password'] ) ? $config['http_password'] : '';
+			$username = $config['http_user'];
+			$password = ! empty( $config['http_password'] ) ? $config['http_password'] : '';
 		}
 
 		// Medium priority: environment variables.
 		// An empty username is not valid for authentication, so we skip if it is empty.
 		// An empty password is allowed (e.g. passwordless setups), consistent with URL embedding.
-		$env_user     = getenv( 'WP_REST_CLI_AUTH_USER' );
-		$env_password = getenv( 'WP_REST_CLI_AUTH_PASSWORD' );
+		$env_user = getenv( 'WP_REST_CLI_AUTH_USER' );
 		if ( false !== $env_user && '' !== $env_user ) {
-			$auth['type']     = 'basic';
-			$auth['username'] = $env_user;
-			$auth['password'] = ( false !== $env_password ) ? $env_password : '';
+			$username     = $env_user;
+			$env_password = getenv( 'WP_REST_CLI_AUTH_PASSWORD' );
+			$password     = ( false !== $env_password ) ? $env_password : '';
 		}
 
 		// Highest priority: credentials embedded in the URL.
@@ -164,12 +163,19 @@ class Runner {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
 		$bits = parse_url( $http );
 		if ( ! empty( $bits['user'] ) ) {
-			$auth['type']     = 'basic';
-			$auth['username'] = $bits['user'];
-			$auth['password'] = ! empty( $bits['pass'] ) ? $bits['pass'] : '';
+			$username = $bits['user'];
+			$password = ! empty( $bits['pass'] ) ? $bits['pass'] : '';
 		}
 
-		return $auth;
+		if ( null === $username ) {
+			return array();
+		}
+
+		return array(
+			'type'     => 'basic',
+			'username' => $username,
+			'password' => $password,
+		);
 	}
 
 	/**

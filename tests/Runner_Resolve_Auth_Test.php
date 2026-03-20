@@ -116,27 +116,27 @@ class Runner_Resolve_Auth_Test extends TestCase {
 		);
 	}
 
-	public function test_url_credentials_without_scheme() {
-		$auth = \WP_REST_CLI\Runner::resolve_auth( 'urluser:urlpass@example.com' );
+	/**
+	 * @dataProvider provide_url_credentials
+	 */
+	public function test_url_credentials( $url, $expected_user, $expected_pass ) {
+		$auth = \WP_REST_CLI\Runner::resolve_auth( $url );
 		$this->assertSame(
 			array(
 				'type'     => 'basic',
-				'username' => 'urluser',
-				'password' => 'urlpass',
+				'username' => $expected_user,
+				'password' => $expected_pass,
 			),
 			$auth
 		);
 	}
 
-	public function test_url_credentials_with_https_scheme() {
-		$auth = \WP_REST_CLI\Runner::resolve_auth( 'https://urluser:urlpass@example.com' );
-		$this->assertSame(
-			array(
-				'type'     => 'basic',
-				'username' => 'urluser',
-				'password' => 'urlpass',
-			),
-			$auth
+	public function provide_url_credentials() {
+		return array(
+			'no scheme'        => array( 'urluser:urlpass@example.com', 'urluser', 'urlpass' ),
+			'https scheme'     => array( 'https://urluser:urlpass@example.com', 'urluser', 'urlpass' ),
+			'user only'        => array( 'urluser@example.com', 'urluser', '' ),
+			'user only, https' => array( 'https://urluser@example.com', 'urluser', '' ),
 		);
 	}
 
