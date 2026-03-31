@@ -41,7 +41,7 @@ class Runner {
 				continue;
 			}
 			$name         = $route_data['schema']['title'];
-			$rest_command = new RESTCommand( $name, $route, $route_data['schema'] );
+			$rest_command = new RestCommand( $name, $route, $route_data['schema'] );
 			$rest_command->set_scope( 'http' );
 			$rest_command->set_api_url( $api_url );
 			$rest_command->set_auth( $auth );
@@ -50,7 +50,7 @@ class Runner {
 	}
 
 	public static function after_wp_load() {
-		if ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) {
+		if ( wp_installing() ) {
 			return;
 		}
 		if ( ! class_exists( 'WP_REST_Server' ) ) {
@@ -80,7 +80,7 @@ class Runner {
 				continue;
 			}
 			$name         = $route_data['schema']['title'];
-			$rest_command = new RESTCommand( $name, $route, $route_data['schema'] );
+			$rest_command = new RestCommand( $name, $route, $route_data['schema'] );
 			self::register_route_commands( $rest_command, $route, $route_data );
 		}
 	}

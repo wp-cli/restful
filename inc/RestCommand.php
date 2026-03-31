@@ -2,7 +2,7 @@
 
 namespace WP_REST_CLI;
 
-use Spyc;
+use Mustangostang\Spyc;
 use WP_CLI;
 use WP_CLI\Utils;
 
@@ -383,6 +383,7 @@ class RestCommand {
 					$request->set_param( $key, $value );
 				}
 			}
+			$original_queries = array();
 			if ( defined( 'SAVEQUERIES' ) && SAVEQUERIES ) {
 				$original_queries = is_array( $GLOBALS['wpdb']->queries ) ? array_keys( $GLOBALS['wpdb']->queries ) : array();
 			}

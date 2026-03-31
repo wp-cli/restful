@@ -1,0 +1,11 @@
+parameters:
+  level: 1
+  paths:
+    - inc
+    - wp-rest-cli.php
+  scanDirectories:
+    - vendor/wp-cli/wp-cli/php
+  scanFiles:
+    - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+    - vendor/wp-cli/mustangostang-spyc/src/Spyc.php
+  treatPhpDocTypesAsCertain: false
