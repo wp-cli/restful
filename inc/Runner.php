@@ -132,8 +132,10 @@ class Runner {
 	/**
 	 * Register WP-CLI commands for all endpoints on a route
 	 *
-	 * @param string
-	 * @param array $endpoints
+	 * @param mixed  $rest_command
+	 * @param string $route
+	 * @param array  $route_data
+	 * @param array  $command_args
 	 */
 	private static function register_route_commands( $rest_command, $route, $route_data, $command_args = array() ) {
 

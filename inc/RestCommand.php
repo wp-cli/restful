@@ -554,7 +554,8 @@ EOT;
 	/**
 	 * Visually depict the difference between "dictated" and "current"
 	 *
-	 * @param array
+	 * @param string $slug
+	 * @param array  $difference
 	 */
 	private function show_difference( $slug, $difference ) {
 		$this->output_nesting_level = 0;
@@ -616,7 +617,7 @@ EOT;
 	/**
 	 * Output a line to be added
 	 *
-	 * @param string
+	 * @param string $line
 	 */
 	private function add_line( $line ) {
 		$this->nested_line( $line, 'add' );
@@ -625,7 +626,7 @@ EOT;
 	/**
 	 * Output a line to be removed
 	 *
-	 * @param string
+	 * @param string $line
 	 */
 	private function remove_line( $line ) {
 		$this->nested_line( $line, 'remove' );
