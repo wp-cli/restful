@@ -15,7 +15,6 @@ class RestCommand {
 	private $route;
 	private $resource_identifier;
 	private $schema;
-	private $default_context      = '';
 	private $output_nesting_level = 0;
 
 	public function __construct( $name, $route, $schema ) {
@@ -274,10 +273,11 @@ class RestCommand {
 			}
 
 			if ( ! empty( $to_item ) ) {
-				foreach ( array( 'to_item', 'from_item' ) as $item ) {
-					if ( isset( $item['_links'] ) ) {
-						unset( $item['_links'] );
-					}
+				if ( isset( $to_item['_links'] ) ) {
+					unset( $to_item['_links'] );
+				}
+				if ( isset( $from_item['_links'] ) ) {
+					unset( $from_item['_links'] );
 				}
 				$display_items[] = array(
 					'from' => self::limit_item_to_fields( $from_item, $fields ),
