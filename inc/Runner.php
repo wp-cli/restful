@@ -11,6 +11,8 @@ class Runner {
 
 	/**
 	 * When --http=domain.com is passed as global arg, register REST for it
+	 *
+	 * @return void
 	 */
 	public static function load_remote_commands() {
 
@@ -49,6 +51,11 @@ class Runner {
 		}
 	}
 
+	/**
+	 * Run after WordPress is loaded.
+	 *
+	 * @return void
+	 */
 	public static function after_wp_load() {
 		if ( wp_installing() ) {
 			return;
@@ -106,6 +113,12 @@ class Runner {
 		return $endpoint;
 	}
 
+	/**
+	 * Discover WP-API endpoint from link headers
+	 *
+	 * @param string $link_headers
+	 * @return string|false
+	 */
 	private static function discover_wp_api( $link_headers ) {
 		if ( preg_match( '#<([^>]+)> *; *rel="https://api.w.org/"#', $link_headers, $matches ) ) {
 			return $matches[1];
@@ -117,7 +130,7 @@ class Runner {
 	 * Get the index data from an API url
 	 *
 	 * @param string $api_url
-	 * @return array|false
+	 * @return array<string, mixed>|false
 	 */
 	private static function get_api_index( $api_url ) {
 		$query_char = false !== strpos( $api_url, '?' ) ? '&' : '?';
@@ -132,10 +145,11 @@ class Runner {
 	/**
 	 * Register WP-CLI commands for all endpoints on a route
 	 *
-	 * @param mixed  $rest_command
-	 * @param string $route
-	 * @param array  $route_data
-	 * @param array  $command_args
+	 * @param \WP_REST_CLI\RestCommand $rest_command
+	 * @param string                   $route
+	 * @param array<string, mixed>     $route_data
+	 * @param array<string, mixed>     $command_args
+	 * @return void
 	 */
 	private static function register_route_commands( $rest_command, $route, $route_data, $command_args = array() ) {
 

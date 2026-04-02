@@ -8,15 +8,35 @@ use WP_CLI\Utils;
 
 class RestCommand {
 
+	/** @var string */
 	private $scope   = 'internal';
+
+	/** @var string */
 	private $api_url = '';
+
+	/** @var array<string, mixed> */
 	private $auth    = array();
+
+	/** @var string */
 	private $name;
+
+	/** @var string */
 	private $route;
+
+	/** @var string */
 	private $resource_identifier;
+
+	/** @var array<string, mixed> */
 	private $schema;
+
+	/** @var int */
 	private $output_nesting_level = 0;
 
+	/**
+	 * @param string               $name
+	 * @param string               $route
+	 * @param array<string, mixed> $schema
+	 */
 	public function __construct( $name, $route, $schema ) {
 		$this->name                = $name;
 		$parsed_args               = preg_match_all( '#\([^\)]+\)#', $route, $matches );
@@ -29,6 +49,7 @@ class RestCommand {
 	 * Set the scope of the REST requests
 	 *
 	 * @param string $scope
+	 * @return void
 	 */
 	public function set_scope( $scope ) {
 		$this->scope = $scope;
@@ -38,6 +59,7 @@ class RestCommand {
 	 * Set the API url for the REST requests
 	 *
 	 * @param string $api_url
+	 * @return void
 	 */
 	public function set_api_url( $api_url ) {
 		$this->api_url = $api_url;
@@ -46,7 +68,8 @@ class RestCommand {
 	/**
 	 * Set the authentication for the API requests
 	 *
-	 * @param array $auth
+	 * @param array<string, mixed> $auth
+	 * @return void
 	 */
 	public function set_auth( $auth ) {
 		$this->auth = $auth;
@@ -56,6 +79,10 @@ class RestCommand {
 	 * Create a new item.
 	 *
 	 * @subcommand create
+	 *
+	 * @param array<string>       $args
+	 * @param array<string, mixed> $assoc_args
+	 * @return void
 	 */
 	public function create_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'POST', $this->get_base_route(), $assoc_args );
@@ -70,6 +97,10 @@ class RestCommand {
 	 * Generate some items.
 	 *
 	 * @subcommand generate
+	 *
+	 * @param array<string>       $args
+	 * @param array<string, mixed> $assoc_args
+	 * @return void
 	 */
 	public function generate_items( $args, $assoc_args ) {
 
@@ -106,6 +137,10 @@ class RestCommand {
 	 * Delete an existing item.
 	 *
 	 * @subcommand delete
+	 *
+	 * @param array<string>       $args
+	 * @param array<string, mixed> $assoc_args
+	 * @return void
 	 */
 	public function delete_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
@@ -123,6 +158,10 @@ class RestCommand {
 	 * Get a single item.
 	 *
 	 * @subcommand get
+	 *
+	 * @param array<string>       $args
+	 * @param array<string, mixed> $assoc_args
+	 * @return void
 	 */
 	public function get_item( $args, $assoc_args ) {
 		list( $status, $body, $headers ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
@@ -154,6 +193,10 @@ class RestCommand {
 	 * List all items.
 	 *
 	 * @subcommand list
+	 *
+	 * @param array<string>       $args
+	 * @param array<string, mixed> $assoc_args
+	 * @return void
 	 */
 	public function list_items( $args, $assoc_args ) {
 		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
@@ -208,6 +251,10 @@ class RestCommand {
 	 * : Limit comparison to specific fields.
 	 *
 	 * @subcommand diff
+	 *
+	 * @param array<string>       $args
+	 * @param array<string, mixed> $assoc_args
+	 * @return void
 	 */
 	public function diff_items( $args, $assoc_args ) {
 
@@ -305,6 +352,10 @@ class RestCommand {
 	 * Update an existing item.
 	 *
 	 * @subcommand update
+	 *
+	 * @param array<string>       $args
+	 * @param array<string, mixed> $assoc_args
+	 * @return void
 	 */
 	public function update_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), $assoc_args );
@@ -319,6 +370,10 @@ class RestCommand {
 	 * Open an existing item in the editor
 	 *
 	 * @subcommand edit
+	 *
+	 * @param array<string>       $args
+	 * @param array<string, mixed> $assoc_args
+	 * @return void
 	 */
 	public function edit_item( $args, $assoc_args ) {
 		$assoc_args['context']         = 'edit';
@@ -366,8 +421,11 @@ class RestCommand {
 	/**
 	 * Do a REST Request
 	 *
-	 * @param string $method
+	 * @param string               $method
+	 * @param string               $route
+	 * @param array<string, mixed> $assoc_args
 	 *
+	 * @return array{0: int, 1: mixed, 2: array<string, mixed>}
 	 */
 	private function do_request( $method, $route, $assoc_args ) {
 		if ( 'internal' === $this->scope ) {
@@ -467,15 +525,16 @@ EOT;
 			return array( $response->status_code, json_decode( $response->body, true ), $response->headers->getAll() );
 		}
 		WP_CLI::error( 'Invalid scope for REST command.' );
+		return array( 0, '', array() );
 	}
 
 	/**
 	 * Get Formatter object based on supplied parameters.
 	 *
-	 * @param array $assoc_args Parameters passed to command. Determines formatting.
+	 * @param array<string, mixed> $assoc_args Parameters passed to command. Determines formatting.
 	 * @return \WP_CLI\Formatter
 	 */
-	protected function get_formatter( &$assoc_args ) {
+	protected function get_formatter( $assoc_args ) {
 		if ( ! empty( $assoc_args['fields'] ) ) {
 			if ( is_string( $assoc_args['fields'] ) ) {
 				$fields = explode( ',', $assoc_args['fields'] );
@@ -494,7 +553,7 @@ EOT;
 	 * Get a list of fields present in a given context
 	 *
 	 * @param string $context
-	 * @return array
+	 * @return array<string>
 	 */
 	private function get_context_fields( $context ) {
 		$fields = array();
@@ -522,7 +581,7 @@ EOT;
 	 * @param string $object_type
 	 *
 	 * @see \WP_REST_Controller::get_additional_fields
-	 * @return array
+	 * @return array<string, array<string, mixed>>
 	 */
 	private function get_additional_fields( $object_type ) {
 		global $wp_rest_additional_fields;
@@ -546,6 +605,9 @@ EOT;
 
 	/**
 	 * Fill the route based on provided $args
+	 *
+	 * @param array<string> $args
+	 * @return string
 	 */
 	private function get_filled_route( $args ) {
 		return rtrim( $this->get_base_route(), '/' ) . '/' . $args[0];
@@ -554,8 +616,9 @@ EOT;
 	/**
 	 * Visually depict the difference between "dictated" and "current"
 	 *
-	 * @param string $slug
-	 * @param array  $difference
+	 * @param string               $slug
+	 * @param array<string, mixed> $difference
+	 * @return void
 	 */
 	private function show_difference( $slug, $difference ) {
 		$this->output_nesting_level = 0;
@@ -566,6 +629,10 @@ EOT;
 
 	/**
 	 * Recursively output the difference between "dictated" and "current"
+	 *
+	 * @param mixed $dictated
+	 * @param mixed $current
+	 * @return void
 	 */
 	private function recursively_show_difference( $dictated, $current = null ) {
 
@@ -618,6 +685,7 @@ EOT;
 	 * Output a line to be added
 	 *
 	 * @param string $line
+	 * @return void
 	 */
 	private function add_line( $line ) {
 		$this->nested_line( $line, 'add' );
@@ -627,6 +695,7 @@ EOT;
 	 * Output a line to be removed
 	 *
 	 * @param string $line
+	 * @return void
 	 */
 	private function remove_line( $line ) {
 		$this->nested_line( $line, 'remove' );
@@ -634,6 +703,10 @@ EOT;
 
 	/**
 	 * Output a line that's appropriately nested
+	 *
+	 * @param string      $line
+	 * @param string|bool $change
+	 * @return void
 	 */
 	private function nested_line( $line, $change = false ) {
 
@@ -659,7 +732,7 @@ EOT;
 	/**
 	 * Whether or not this is an associative array
 	 *
-	 * @param array $arr
+	 * @param array<mixed> $arr
 	 * @return bool
 	 */
 	private function is_assoc_array( $arr ) {
@@ -678,9 +751,9 @@ EOT;
 	/**
 	 * Reduce an item to specific fields.
 	 *
-	 * @param array $item
-	 * @param array $fields
-	 * @return array
+	 * @param array<string, mixed> $item
+	 * @param array<string>|string $fields
+	 * @return array<string, mixed>
 	 */
 	private static function limit_item_to_fields( $item, $fields ) {
 		if ( empty( $fields ) ) {
