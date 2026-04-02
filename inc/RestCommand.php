@@ -9,13 +9,13 @@ use WP_CLI\Utils;
 class RestCommand {
 
 	/** @var string */
-	private $scope   = 'internal';
+	private $scope = 'internal';
 
 	/** @var string */
 	private $api_url = '';
 
 	/** @var array<string, mixed> */
-	private $auth    = array();
+	private $auth = array();
 
 	/** @var string */
 	private $name;
