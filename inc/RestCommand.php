@@ -86,8 +86,12 @@ class RestCommand {
 	 */
 	public function create_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'POST', $this->get_base_route(), $assoc_args );
-		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
-			WP_CLI::line( $body['id'] );
+		if ( ! is_array( $body ) || empty( $body['id'] ) ) {
+			WP_CLI::error( "Could not create {$this->name}." );
+		}
+		/** @var array{id: scalar} $body */
+		if ( Utils\get_flag_value( self::get_typed_assoc_args( $assoc_args ), 'porcelain' ) ) {
+			WP_CLI::line( (string) $body['id'] );
 		} else {
 			WP_CLI::success( "Created {$this->name} {$body['id']}." );
 		}
@@ -104,9 +108,16 @@ class RestCommand {
 	 */
 	public function generate_items( $args, $assoc_args ) {
 
-		$count = $assoc_args['count'];
+		$count = 0;
+		if ( isset( $assoc_args['count'] ) ) {
+			$count = is_numeric( $assoc_args['count'] ) ? (int) $assoc_args['count'] : 0;
+		}
 		unset( $assoc_args['count'] );
-		$format = $assoc_args['format'];
+
+		$format = 'ids';
+		if ( isset( $assoc_args['format'] ) ) {
+			$format = is_scalar( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'ids';
+		}
 		unset( $assoc_args['format'] );
 
 		$notify = false;
@@ -122,7 +133,8 @@ class RestCommand {
 				/** @var \cli\progress\Bar $notify */
 				$notify->tick();
 			} elseif ( 'ids' === $format ) {
-				echo $body['id'];
+				$id = is_array( $body ) && isset( $body['id'] ) ? $body['id'] : '';
+				echo is_scalar( $id ) ? (string) $id : '';
 				if ( $i < $count - 1 ) {
 					echo ' ';
 				}
@@ -146,11 +158,23 @@ class RestCommand {
 	 */
 	public function delete_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'DELETE', $this->get_filled_route( $args ), $assoc_args );
-		$id                    = isset( $body['previous'] ) ? $body['previous']['id'] : $body['id'];
-		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
+		if ( ! is_array( $body ) ) {
+			$body = array();
+		}
+
+		$id = '';
+		if ( isset( $body['previous'] ) && is_array( $body['previous'] ) && isset( $body['previous']['id'] ) ) {
+			$id = $body['previous']['id'];
+		} elseif ( isset( $body['id'] ) ) {
+			$id = $body['id'];
+		}
+
+		$id = is_scalar( $id ) ? (string) $id : '';
+
+		if ( Utils\get_flag_value( self::get_typed_assoc_args( $assoc_args ), 'porcelain' ) ) {
 			WP_CLI::line( $id );
 		} elseif ( empty( $assoc_args['force'] ) ) {
-				WP_CLI::success( "Trashed {$this->name} {$id}." );
+			WP_CLI::success( "Trashed {$this->name} {$id}." );
 		} else {
 			WP_CLI::success( "Deleted {$this->name} {$id}." );
 		}
@@ -168,8 +192,21 @@ class RestCommand {
 	public function get_item( $args, $assoc_args ) {
 		list( $status, $body, $headers ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
 
+		if ( ! is_array( $body ) ) {
+			$body = array();
+		}
+
 		if ( ! empty( $assoc_args['fields'] ) ) {
-			$body = self::limit_item_to_fields( $body, $assoc_args['fields'] );
+			$fields = $assoc_args['fields'];
+			if ( is_string( $fields ) ) {
+				$fields = explode( ',', $fields );
+			}
+			if ( is_array( $fields ) ) {
+				$fields = array_filter( $fields, 'is_string' );
+			} else {
+				$fields = array();
+			}
+			$body = self::limit_item_to_fields( $body, $fields );
 		}
 
 		if ( 'headers' === $assoc_args['format'] ) {
@@ -207,6 +244,9 @@ class RestCommand {
 			$method = 'GET';
 		}
 		list( $status, $body, $headers ) = $this->do_request( $method, $this->get_base_route(), $assoc_args );
+		if ( ! is_array( $body ) ) {
+			$body = array();
+		}
 		if ( ! empty( $assoc_args['format'] ) && 'ids' === $assoc_args['format'] ) {
 			$items = array_column( $body, 'id' );
 		} else {
@@ -214,13 +254,26 @@ class RestCommand {
 		}
 
 		if ( ! empty( $assoc_args['fields'] ) ) {
+			$fields = $assoc_args['fields'];
+			if ( is_string( $fields ) ) {
+				$fields = explode( ',', $fields );
+			}
+			if ( is_array( $fields ) ) {
+				$fields = array_filter( $fields, 'is_string' );
+			} else {
+				$fields = array();
+			}
 			foreach ( $items as $key => $item ) {
-				$items[ $key ] = self::limit_item_to_fields( $item, $assoc_args['fields'] );
+				if ( is_array( $item ) ) {
+					/** @var array<string, mixed> $item */
+					$items[ $key ] = self::limit_item_to_fields( $item, $fields );
+				}
 			}
 		}
 
 		if ( ! empty( $assoc_args['format'] ) && 'count' === $assoc_args['format'] ) {
-			echo (int) $headers['X-WP-Total'];
+			$total = isset( $headers['X-WP-Total'] ) ? $headers['X-WP-Total'] : 0;
+			echo is_numeric( $total ) ? (int) $total : 0;
 		} elseif ( 'headers' === $assoc_args['format'] ) {
 			echo json_encode( $headers );
 		} elseif ( 'body' === $assoc_args['format'] ) {
@@ -265,12 +318,19 @@ class RestCommand {
 			WP_CLI::error( "Alias '{$alias}' not found." );
 		}
 		$resource = isset( $args[1] ) ? $args[1] : null;
-		$fields   = Utils\get_flag_value( $assoc_args, 'fields', null );
+		$fields   = Utils\get_flag_value( self::get_typed_assoc_args( $assoc_args ), 'fields', '' );
+		if ( ! is_string( $fields ) ) {
+			$fields = '';
+		}
 
 		list( $from_status, $from_body, $from_headers ) = $this->do_request( 'GET', $this->get_base_route(), array() );
 
-		$php_bin          = WP_CLI::get_php_binary();
-		$script_path      = $GLOBALS['argv'][0];
+		$php_bin     = WP_CLI::get_php_binary();
+		$argv        = isset( $GLOBALS['argv'] ) && is_array( $GLOBALS['argv'] ) ? $GLOBALS['argv'] : array();
+		$script_path = '';
+		if ( isset( $argv[0] ) && is_string( $argv[0] ) ) {
+			$script_path = $argv[0];
+		}
 		$other_args       = implode( ' ', array_map( 'escapeshellarg', array( $alias, 'rest', $this->name, 'list' ) ) );
 		$other_assoc_args = Utils\assoc_args_to_str( array( 'format' => 'envelope' ) );
 		$full_command     = "{$php_bin} {$script_path} {$other_args} {$other_assoc_args}";
@@ -285,9 +345,13 @@ class RestCommand {
 		);
 		$result           = $process->run();
 		$response         = json_decode( $result->stdout, true );
-		$to_headers       = $response['headers'];
-		$to_body          = $response['body'];
-		$to_api_url       = $response['api_url'];
+		if ( ! is_array( $response ) || ! isset( $response['headers'] ) || ! isset( $response['body'] ) || ! isset( $response['api_url'] ) || ! is_string( $response['api_url'] ) ) {
+			WP_CLI::error( 'Invalid response from alias.' );
+		}
+		/** @var array{headers: mixed, body: mixed, api_url: string} $response */
+		$to_headers = $response['headers'];
+		$to_body    = $response['body'];
+		$to_api_url = $response['api_url'];
 
 		$from_body = is_array( $from_body ) ? $from_body : array();
 		$to_body   = is_array( $to_body ) ? $to_body : array();
@@ -311,8 +375,12 @@ class RestCommand {
 			$to_item   = array();
 			if ( ! empty( $from_body ) ) {
 				$from_item = array_shift( $from_body );
+				$from_item = is_array( $from_item ) ? $from_item : array();
 				if ( ! empty( $to_body ) && ! empty( $from_item['slug'] ) ) {
 					foreach ( $to_body as $i => $item ) {
+						if ( ! is_array( $item ) ) {
+							continue;
+						}
 						if ( ! empty( $item['slug'] ) && $item['slug'] === $from_item['slug'] ) {
 							$to_item = $item;
 							unset( $to_body[ $i ] );
@@ -322,6 +390,7 @@ class RestCommand {
 				}
 			} elseif ( ! empty( $to_body ) ) {
 				$to_item = array_shift( $to_body );
+				$to_item = is_array( $to_item ) ? $to_item : array();
 			}
 
 			if ( ! empty( $to_item ) ) {
@@ -364,8 +433,12 @@ class RestCommand {
 	 */
 	public function update_item( $args, $assoc_args ) {
 		list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), $assoc_args );
-		if ( Utils\get_flag_value( $assoc_args, 'porcelain' ) ) {
-			WP_CLI::line( $body['id'] );
+		if ( ! is_array( $body ) || empty( $body['id'] ) ) {
+			WP_CLI::error( "Could not update {$this->name}." );
+		}
+		/** @var array{id: scalar} $body */
+		if ( Utils\get_flag_value( self::get_typed_assoc_args( $assoc_args ), 'porcelain' ) ) {
+			WP_CLI::line( (string) $body['id'] );
 		} else {
 			WP_CLI::success( "Updated {$this->name} {$body['id']}." );
 		}
@@ -383,26 +456,38 @@ class RestCommand {
 	public function edit_item( $args, $assoc_args ) {
 		$assoc_args['context']         = 'edit';
 		list( $status, $options_body ) = $this->do_request( 'OPTIONS', $this->get_filled_route( $args ), $assoc_args );
-		if ( empty( $options_body['schema'] ) ) {
+		if ( ! is_array( $options_body ) || empty( $options_body['schema'] ) || ! is_array( $options_body['schema'] ) ) {
 			WP_CLI::error( 'Cannot edit - no schema found for resource.' );
 		}
-		$schema                           = $options_body['schema'];
+		/** @var array{schema: array{properties: array<string, mixed>, title: string}} $options_body */
+		$schema = $options_body['schema'];
+		if ( empty( $schema['properties'] ) || ! is_array( $schema['properties'] ) ) {
+			WP_CLI::error( 'Cannot edit - no properties found in schema.' );
+		}
+		if ( empty( $schema['title'] ) || ! is_string( $schema['title'] ) ) {
+			WP_CLI::error( 'Cannot edit - no valid title in schema.' );
+		}
 		list( $status, $resource_fields ) = $this->do_request( 'GET', $this->get_filled_route( $args ), $assoc_args );
-		$editable_fields                  = array();
+		if ( ! is_array( $resource_fields ) ) {
+			WP_CLI::error( 'Cannot edit - no resource fields found.' );
+		}
+		/** @var array<string, mixed> $resource_fields */
+		$editable_fields = array();
 		foreach ( $resource_fields as $key => $value ) {
-			if ( ! isset( $schema['properties'][ $key ] ) || ! empty( $schema['properties'][ $key ]['readonly'] ) ) {
+			if ( ! isset( $schema['properties'][ $key ] ) || ! is_array( $schema['properties'][ $key ] ) || ! empty( $schema['properties'][ $key ]['readonly'] ) ) {
 				continue;
 			}
 			$properties = $schema['properties'][ $key ];
-			if ( isset( $properties['properties'] ) ) {
+			if ( isset( $properties['properties'] ) && is_array( $properties['properties'] ) ) {
 				$parent_key = $key;
 				$properties = $properties['properties'];
-				foreach ( $value as $key => $value ) {
-					if ( isset( $properties[ $key ] ) && empty( $properties[ $key ]['readonly'] ) ) {
-						if ( ! isset( $editable_fields[ $parent_key ] ) ) {
-							$editable_fields[ $parent_key ] = array();
+				if ( is_array( $value ) ) {
+					foreach ( $value as $sub_key => $sub_value ) {
+						if ( isset( $properties[ $sub_key ] ) && is_array( $properties[ $sub_key ] ) && empty( $properties[ $sub_key ]['readonly'] ) ) {
+							$sub_array                      = isset( $editable_fields[ $parent_key ] ) && is_array( $editable_fields[ $parent_key ] ) ? $editable_fields[ $parent_key ] : array();
+							$sub_array[ $sub_key ]          = $sub_value;
+							$editable_fields[ $parent_key ] = $sub_array;
 						}
-						$editable_fields[ $parent_key ][ $key ] = $value;
 					}
 				}
 				continue;
@@ -448,12 +533,16 @@ class RestCommand {
 			}
 			$original_queries = array();
 			if ( defined( 'SAVEQUERIES' ) && SAVEQUERIES ) {
-				$original_queries = is_array( $GLOBALS['wpdb']->queries ) ? array_keys( $GLOBALS['wpdb']->queries ) : array();
+				/** @var \wpdb $wpdb */
+				$wpdb             = $GLOBALS['wpdb'];
+				$original_queries = is_array( $wpdb->queries ) ? array_keys( $wpdb->queries ) : array();
 			}
 			$response = rest_do_request( $request );
 			if ( defined( 'SAVEQUERIES' ) && SAVEQUERIES ) {
+				/** @var \wpdb $wpdb */
+				$wpdb              = $GLOBALS['wpdb'];
 				$performed_queries = array();
-				foreach ( (array) $GLOBALS['wpdb']->queries as $key => $query ) {
+				foreach ( (array) $wpdb->queries as $key => $query ) {
 					if ( in_array( $key, $original_queries, true ) ) {
 						continue;
 					}
@@ -504,8 +593,12 @@ EOT;
 		} elseif ( 'http' === $this->scope ) {
 			$headers = array();
 			if ( ! empty( $this->auth ) && 'basic' === $this->auth['type'] ) {
-				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-				$headers['Authorization'] = 'Basic ' . base64_encode( $this->auth['username'] . ':' . $this->auth['password'] );
+				$username = isset( $this->auth['username'] ) ? $this->auth['username'] : '';
+				$password = isset( $this->auth['password'] ) ? $this->auth['password'] : '';
+				if ( is_scalar( $username ) && is_scalar( $password ) ) {
+					// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+					$headers['Authorization'] = 'Basic ' . base64_encode( (string) $username . ':' . (string) $password );
+				}
 			}
 			if ( 'OPTIONS' === $method ) {
 				$method                = 'GET';
@@ -514,8 +607,11 @@ EOT;
 			/** @var \WpOrg\Requests\Response $response */
 			$response = Utils\http_request( $method, rtrim( $this->api_url, '/' ) . $route, $assoc_args, $headers );
 			$body     = json_decode( $response->body, true );
+			if ( ! is_array( $body ) ) {
+				$body = array();
+			}
 			if ( $response->status_code >= 400 ) {
-				if ( ! empty( $body['message'] ) ) {
+				if ( ! empty( $body['message'] ) && is_string( $body['message'] ) ) {
 					WP_CLI::error( $body['message'] . ' ' . json_encode( array( 'status' => $response->status_code ) ) );
 				} else {
 					switch ( $response->status_code ) {
@@ -545,11 +641,13 @@ EOT;
 		if ( ! empty( $assoc_args['fields'] ) ) {
 			if ( is_string( $assoc_args['fields'] ) ) {
 				$fields = explode( ',', $assoc_args['fields'] );
+			} elseif ( is_array( $assoc_args['fields'] ) ) {
+				$fields = array_filter( $assoc_args['fields'], 'is_string' );
 			} else {
-				$fields = $assoc_args['fields'];
+				$fields = array();
 			}
-		} elseif ( ! empty( $assoc_args['context'] ) ) {
-				$fields = $this->get_context_fields( $assoc_args['context'] );
+		} elseif ( ! empty( $assoc_args['context'] ) && is_scalar( $assoc_args['context'] ) ) {
+				$fields = $this->get_context_fields( (string) $assoc_args['context'] );
 		} else {
 			$fields = $this->get_context_fields( 'view' );
 		}
@@ -564,18 +662,31 @@ EOT;
 	 */
 	private function get_context_fields( $context ) {
 		$fields = array();
-		foreach ( $this->schema['properties'] as $key => $args ) {
-			if ( empty( $args['context'] ) || in_array( $context, $args['context'], true ) ) {
-				$fields[] = $key;
+		if ( ! empty( $this->schema['properties'] ) && is_array( $this->schema['properties'] ) ) {
+			foreach ( $this->schema['properties'] as $key => $args ) {
+				if ( ! is_array( $args ) ) {
+					continue;
+				}
+				$context_array = isset( $args['context'] ) ? $args['context'] : array();
+				if ( ! is_array( $context_array ) ) {
+					$context_array = array();
+				}
+				if ( empty( $context_array ) || in_array( $context, $context_array, true ) ) {
+					$fields[] = (string) $key;
+				}
 			}
 		}
 
-		foreach ( $this->get_additional_fields( $this->schema['title'] ) as $field_name => $field ) {
+		$title = isset( $this->schema['title'] ) ? $this->schema['title'] : '';
+		if ( ! is_scalar( $title ) ) {
+			$title = '';
+		}
+		foreach ( $this->get_additional_fields( (string) $title ) as $field_name => $field ) {
 			// For back-compat, include any field with an empty schema
 			// because it won't be present in $this->get_item_schema().
 			// @see \WP_REST_Controller::get_fields_for_response
-			if ( is_null( $field['schema'] ) ) {
-				$fields[] = $field_name;
+			if ( is_array( $field ) && isset( $field['schema'] ) && is_null( $field['schema'] ) ) {
+				$fields[] = (string) $field_name;
 			}
 		}
 		return $fields;
@@ -645,42 +756,49 @@ EOT;
 
 		++$this->output_nesting_level;
 
-		if ( $this->is_assoc_array( $dictated ) ) {
+		if ( is_array( $dictated ) && $this->is_assoc_array( $dictated ) ) {
 
 			foreach ( $dictated as $key => $value ) {
+				$key_str = (string) $key;
 
-				if ( $this->is_assoc_array( $value ) || is_array( $value ) ) {
+				if ( is_array( $value ) ) {
 
-					$new_current = isset( $current[ $key ] ) ? $current[ $key ] : null;
+					$new_current = null;
+					if ( is_array( $current ) && isset( $current[ $key ] ) ) {
+						$new_current = $current[ $key ];
+					}
+
 					if ( $new_current ) {
-						$this->nested_line( $key . ': ' );
+						$this->nested_line( $key_str . ': ' );
 					} else {
-						$this->add_line( $key . ': ' );
+						$this->add_line( $key_str . ': ' );
 					}
 
 					$this->recursively_show_difference( $value, $new_current );
 
-				} elseif ( is_string( $value ) ) {
+				} elseif ( is_scalar( $value ) ) {
 
-					$pre = $key . ': ';
+					$pre       = $key_str . ': ';
+					$value_str = (string) $value;
 
-					if ( isset( $current[ $key ] ) && $current[ $key ] !== $value ) {
-
-						$this->remove_line( $pre . $current[ $key ] );
-						$this->add_line( $pre . $value );
-
-					} elseif ( ! isset( $current[ $key ] ) ) {
-
-						$this->add_line( $pre . $value );
-
+					if ( is_array( $current ) && isset( $current[ $key ] ) ) {
+						$current_val = $current[ $key ];
+						if ( $current_val !== $value ) {
+							$current_val_str = is_scalar( $current_val ) ? (string) $current_val : '';
+							$this->remove_line( $pre . $current_val_str );
+							$this->add_line( $pre . $value_str );
+						}
+					} else {
+						$this->add_line( $pre . $value_str );
 					}
 				}
 			}
 		} elseif ( is_array( $dictated ) ) {
 
 			foreach ( $dictated as $value ) {
-				if ( ! $current || ! in_array( $value, $current, true ) ) {
-					$this->add_line( '- ' . $value );
+				$value_str = is_scalar( $value ) ? (string) $value : '';
+				if ( ! is_array( $current ) || ! in_array( $value, $current, true ) ) {
+					$this->add_line( '- ' . $value_str );
 				}
 			}
 		}
@@ -775,5 +893,21 @@ EOT;
 			}
 		}
 		return $item;
+	}
+
+	/**
+	 * Get typed assoc args for WP-CLI utilities.
+	 *
+	 * @param array<string, mixed> $assoc_args
+	 * @return array<string, bool|string>
+	 */
+	private static function get_typed_assoc_args( array $assoc_args ) {
+		$typed = array();
+		foreach ( $assoc_args as $key => $value ) {
+			if ( is_string( $key ) && ( is_string( $value ) || is_bool( $value ) ) ) {
+				$typed[ $key ] = $value;
+			}
+		}
+		return $typed;
 	}
 }

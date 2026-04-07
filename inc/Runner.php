@@ -39,17 +39,30 @@ class Runner {
 			$auth['username'] = $bits['user'];
 			$auth['password'] = ! empty( $bits['pass'] ) ? $bits['pass'] : '';
 		}
-		foreach ( $api_index['routes'] as $route => $route_data ) {
-			if ( empty( $route_data['schema']['title'] ) ) {
-				WP_CLI::debug( "No schema title found for {$route}, skipping REST command registration.", 'rest' );
+		if ( ! isset( $api_index['routes'] ) || ! is_array( $api_index['routes'] ) ) {
+			WP_CLI::error( "No routes found in API index from {$api_url}." );
+		}
+		/** @var array<string, array<string, mixed>> $routes */
+		$routes = $api_index['routes'];
+		foreach ( $routes as $route => $route_data ) {
+			if ( ! is_array( $route_data ) ) {
+				continue;
+			}
+			if ( empty( $route_data['schema'] ) || ! is_array( $route_data['schema'] ) ) {
+				continue;
+			}
+			if ( empty( $route_data['schema']['title'] ) || ! is_string( $route_data['schema']['title'] ) ) {
+				WP_CLI::debug( "No valid schema title found for {$route}, skipping REST command registration.", 'rest' );
 				continue;
 			}
 			$name         = $route_data['schema']['title'];
-			$rest_command = new RestCommand( $name, $route, $route_data['schema'] );
+			/** @var array<string, mixed> $schema */
+			$schema       = $route_data['schema'];
+			$rest_command = new RestCommand( $name, $route, $schema );
 			$rest_command->set_scope( 'http' );
 			$rest_command->set_api_url( $api_url );
 			$rest_command->set_auth( $auth );
-			self::register_route_commands( $rest_command, $route, $route_data, array( 'when' => 'before_wp_load' ) );
+			self::register_route_commands( $rest_command, (string) $route, $route_data, array( 'when' => 'before_wp_load' ) );
 		}
 	}
 
@@ -83,14 +96,27 @@ class Runner {
 			return;
 		}
 
-		foreach ( $response_data['routes'] as $route => $route_data ) {
-			if ( empty( $route_data['schema']['title'] ) ) {
-				WP_CLI::debug( "No schema title found for {$route}, skipping REST command registration.", 'rest' );
+		if ( ! is_array( $response_data ) || ! isset( $response_data['routes'] ) || ! is_array( $response_data['routes'] ) ) {
+			return;
+		}
+		/** @var array<string, array<string, mixed>> $routes */
+		$routes = $response_data['routes'];
+		foreach ( $routes as $route => $route_data ) {
+			if ( ! is_array( $route_data ) ) {
+				continue;
+			}
+			if ( empty( $route_data['schema'] ) || ! is_array( $route_data['schema'] ) ) {
+				continue;
+			}
+			if ( empty( $route_data['schema']['title'] ) || ! is_string( $route_data['schema']['title'] ) ) {
+				WP_CLI::debug( "No valid schema title found for {$route}, skipping REST command registration.", 'rest' );
 				continue;
 			}
 			$name         = $route_data['schema']['title'];
-			$rest_command = new RestCommand( $name, $route, $route_data['schema'] );
-			self::register_route_commands( $rest_command, $route, $route_data );
+			/** @var array<string, mixed> $schema */
+			$schema       = $route_data['schema'];
+			$rest_command = new RestCommand( $name, $route, $schema );
+			self::register_route_commands( $rest_command, (string) $route, $route_data );
 		}
 	}
 
@@ -143,7 +169,9 @@ class Runner {
 		if ( empty( $response->body ) ) {
 			return false;
 		}
-		return json_decode( $response->body, true );
+		$index = json_decode( $response->body, true );
+		/** @var array<string, mixed>|false $index */
+		return $index;
 	}
 
 	/**
@@ -157,9 +185,19 @@ class Runner {
 	 */
 	private static function register_route_commands( $rest_command, $route, $route_data, $command_args = array() ) {
 
+		if ( empty( $route_data['schema'] ) || ! is_array( $route_data['schema'] ) ) {
+			return;
+		}
+		if ( empty( $route_data['schema']['title'] ) || ! is_string( $route_data['schema']['title'] ) ) {
+			return;
+		}
+
 		$parent = "rest {$route_data['schema']['title']}";
 
 		$supported_commands = array();
+		if ( empty( $route_data['endpoints'] ) || ! is_array( $route_data['endpoints'] ) ) {
+			return;
+		}
 		foreach ( $route_data['endpoints'] as $endpoint ) {
 
 			$parsed_args   = preg_match_all( '#\([^\)]+\)#', $route, $matches );
@@ -167,35 +205,43 @@ class Runner {
 			$trimmed_route = rtrim( $route );
 			$is_singular   = $resource_id && substr( $trimmed_route, - strlen( $resource_id ) ) === $resource_id;
 
+			if ( ! is_array( $endpoint ) ) {
+				continue;
+			}
+			if ( empty( $endpoint['methods'] ) || ! is_array( $endpoint['methods'] ) ) {
+				continue;
+			}
+
 			$command = '';
 			// List a collection
 			if ( array( 'GET' ) === $endpoint['methods']
 				&& ! $is_singular ) {
-				$supported_commands['list'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
+				$supported_commands['list'] = ( isset( $endpoint['args'] ) && is_array( $endpoint['args'] ) ) ? $endpoint['args'] : array();
 			}
 
 			// Create a specific resource
 			if ( array( 'POST' ) === $endpoint['methods']
 				&& ! $is_singular ) {
-				$supported_commands['create'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
+				$supported_commands['create'] = ( isset( $endpoint['args'] ) && is_array( $endpoint['args'] ) ) ? $endpoint['args'] : array();
 			}
 
 			// Get a specific resource
 			if ( array( 'GET' ) === $endpoint['methods'] && $is_singular ) {
-				$supported_commands['get'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
+				$supported_commands['get'] = ( isset( $endpoint['args'] ) && is_array( $endpoint['args'] ) ) ? $endpoint['args'] : array();
 			}
 
 			// Update a specific resource
 			if ( in_array( 'POST', $endpoint['methods'], true ) && $is_singular ) {
-				$supported_commands['update'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
+				$supported_commands['update'] = ( isset( $endpoint['args'] ) && is_array( $endpoint['args'] ) ) ? $endpoint['args'] : array();
 			}
 
 			// Delete a specific resource
 			if ( array( 'DELETE' ) === $endpoint['methods'] && $is_singular ) {
-				$supported_commands['delete'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
+				$supported_commands['delete'] = ( isset( $endpoint['args'] ) && is_array( $endpoint['args'] ) ) ? $endpoint['args'] : array();
 			}
 		}
 
+		/** @var array<string, array<string, mixed>> $supported_commands */
 		foreach ( $supported_commands as $command => $endpoint_args ) {
 
 			$synopsis = array();
@@ -209,6 +255,9 @@ class Runner {
 			}
 
 			foreach ( $endpoint_args as $name => $args ) {
+				if ( ! is_array( $args ) ) {
+					continue;
+				}
 				$arg_reg = array(
 					'name'        => $name,
 					'type'        => 'assoc',
