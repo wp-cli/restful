@@ -55,7 +55,7 @@ class Runner {
 				WP_CLI::debug( "No valid schema title found for {$route}, skipping REST command registration.", 'rest' );
 				continue;
 			}
-			$name         = $route_data['schema']['title'];
+			$name = $route_data['schema']['title'];
 			/** @var array<string, mixed> $schema */
 			$schema       = $route_data['schema'];
 			$rest_command = new RestCommand( $name, $route, $schema );
@@ -112,7 +112,7 @@ class Runner {
 				WP_CLI::debug( "No valid schema title found for {$route}, skipping REST command registration.", 'rest' );
 				continue;
 			}
-			$name         = $route_data['schema']['title'];
+			$name = $route_data['schema']['title'];
 			/** @var array<string, mixed> $schema */
 			$schema       = $route_data['schema'];
 			$rest_command = new RestCommand( $name, $route, $schema );
