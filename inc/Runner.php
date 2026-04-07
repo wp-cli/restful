@@ -25,10 +25,12 @@ class Runner {
 		if ( ! $api_url ) {
 			WP_CLI::error( "Couldn't auto-discover WP REST API endpoint from {$http}." );
 		}
+		assert( is_string( $api_url ) );
 		$api_index = self::get_api_index( $api_url );
 		if ( ! $api_index ) {
 			WP_CLI::error( "Couldn't find index data from {$api_url}." );
 		}
+		assert( is_array( $api_index ) );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
 		$bits = parse_url( $http );
 		$auth = array();
@@ -102,6 +104,7 @@ class Runner {
 		if ( false === stripos( $url, 'http://' ) && false === stripos( $url, 'https://' ) ) {
 			$url = 'http://' . $url;
 		}
+		/** @var \WpOrg\Requests\Response $response */
 		$response = Utils\http_request( 'HEAD', $url );
 		if ( empty( $response->headers['link'] ) ) {
 			return false;
@@ -135,7 +138,8 @@ class Runner {
 	private static function get_api_index( $api_url ) {
 		$query_char = false !== strpos( $api_url, '?' ) ? '&' : '?';
 		$api_url   .= $query_char . 'context=help';
-		$response   = Utils\http_request( 'GET', $api_url );
+		/** @var \WpOrg\Requests\Response $response */
+		$response = Utils\http_request( 'GET', $api_url );
 		if ( empty( $response->body ) ) {
 			return false;
 		}

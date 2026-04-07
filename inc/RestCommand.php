@@ -119,6 +119,7 @@ class RestCommand {
 			list( $status, $body ) = $this->do_request( 'POST', $this->get_base_route(), $assoc_args );
 
 			if ( 'progress' === $format ) {
+				/** @var \cli\progress\Bar $notify */
 				$notify->tick();
 			} elseif ( 'ids' === $format ) {
 				echo $body['id'];
@@ -129,6 +130,7 @@ class RestCommand {
 		}
 
 		if ( 'progress' === $format ) {
+			/** @var \cli\progress\Bar $notify */
 			$notify->finish();
 		}
 	}
@@ -287,6 +289,9 @@ class RestCommand {
 		$to_body          = $response['body'];
 		$to_api_url       = $response['api_url'];
 
+		$from_body = is_array( $from_body ) ? $from_body : array();
+		$to_body   = is_array( $to_body ) ? $to_body : array();
+
 		if ( ! is_null( $resource ) ) {
 			$field    = is_numeric( $resource ) ? 'id' : 'slug';
 			$callback = function ( $value ) use ( $field, $resource ) {
@@ -410,7 +415,7 @@ class RestCommand {
 			WP_CLI::error( 'Cannot edit - no editable fields found on schema.' );
 		}
 		$ret = Utils\launch_editor_for_input( Spyc::YAMLDump( $editable_fields ), sprintf( 'Editing %s %s', $schema['title'], $args[0] ) );
-		if ( false === $ret ) {
+		if ( ! is_string( $ret ) ) {
 			WP_CLI::warning( 'No edits made.' );
 		} else {
 			list( $status, $body ) = $this->do_request( 'POST', $this->get_filled_route( $args ), Spyc::YAMLLoadString( $ret ) );
@@ -506,6 +511,7 @@ EOT;
 				$method                = 'GET';
 				$assoc_args['_method'] = 'OPTIONS';
 			}
+			/** @var \WpOrg\Requests\Response $response */
 			$response = Utils\http_request( $method, rtrim( $this->api_url, '/' ) . $route, $assoc_args, $headers );
 			$body     = json_decode( $response->body, true );
 			if ( $response->status_code >= 400 ) {
@@ -522,6 +528,7 @@ EOT;
 					}
 				}
 			}
+			assert( is_int( $response->status_code ) );
 			return array( $response->status_code, json_decode( $response->body, true ), $response->headers->getAll() );
 		}
 		WP_CLI::error( 'Invalid scope for REST command.' );
