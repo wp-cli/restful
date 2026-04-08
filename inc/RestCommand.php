@@ -624,8 +624,7 @@ EOT;
 					}
 				}
 			}
-			assert( is_int( $response->status_code ) );
-			return array( $response->status_code, json_decode( $response->body, true ), $response->headers->getAll() );
+			return array( (int) $response->status_code, $body, $response->headers->getAll() );
 		}
 		WP_CLI::error( 'Invalid scope for REST command.' );
 		return array( 0, '', array() );

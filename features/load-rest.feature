@@ -49,5 +49,5 @@ Feature: Manage WordPress through endpoints locally
     When I run `wp rest --debug`
     Then STDERR should contain:
       """
-      Debug (rest): No schema title found for /myplugin/v1/books, skipping REST command registration.
+      Debug (rest): No valid schema title found for /myplugin/v1/books, skipping REST command registration.
       """
