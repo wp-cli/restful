@@ -170,7 +170,9 @@ class Runner {
 			return false;
 		}
 		$index = json_decode( $response->body, true );
-		/** @var array<string, mixed>|false $index */
+		if ( ! is_array( $index ) ) {
+			return false;
+		}
 		return $index;
 	}
 
