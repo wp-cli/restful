@@ -617,9 +617,11 @@ EOT;
 					switch ( $response->status_code ) {
 						case 404:
 							WP_CLI::error( "No {$this->name} found." );
+							// @phpstan-ignore deadCode.unreachable
 							break;
 						default:
 							WP_CLI::error( 'Could not complete request.' );
+							// @phpstan-ignore deadCode.unreachable
 							break;
 					}
 				}
@@ -627,6 +629,7 @@ EOT;
 			return array( (int) $response->status_code, $body, $response->headers->getAll() );
 		}
 		WP_CLI::error( 'Invalid scope for REST command.' );
+		// @phpstan-ignore deadCode.unreachable
 		return array( 0, '', array() );
 	}
 
