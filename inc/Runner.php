@@ -11,6 +11,8 @@ class Runner {
 
 	/**
 	 * When --http=domain.com is passed as global arg, register REST for it
+	 *
+	 * @return void
 	 */
 	public static function load_remote_commands() {
 
@@ -23,28 +25,50 @@ class Runner {
 		if ( ! $api_url ) {
 			WP_CLI::error( "Couldn't auto-discover WP REST API endpoint from {$http}." );
 		}
+		assert( is_string( $api_url ) );
 		$api_index = self::get_api_index( $api_url );
 		if ( ! $api_index ) {
 			WP_CLI::error( "Couldn't find index data from {$api_url}." );
 		}
+		assert( is_array( $api_index ) );
+
 		$auth = self::resolve_auth( $http, WP_CLI::get_runner()->config );
 
-		foreach ( $api_index['routes'] as $route => $route_data ) {
-			if ( empty( $route_data['schema']['title'] ) ) {
-				WP_CLI::debug( "No schema title found for {$route}, skipping REST command registration.", 'rest' );
+		if ( ! isset( $api_index['routes'] ) || ! is_array( $api_index['routes'] ) ) {
+			WP_CLI::error( "No routes found in API index from {$api_url}." );
+		}
+
+		/** @var array<string, array<string, mixed>> $routes */
+		$routes = $api_index['routes'];
+		foreach ( $routes as $route => $route_data ) {
+			if ( ! is_array( $route_data ) ) {
 				continue;
 			}
-			$name         = $route_data['schema']['title'];
-			$rest_command = new RESTCommand( $name, $route, $route_data['schema'] );
+			if ( empty( $route_data['schema'] ) || ! is_array( $route_data['schema'] ) ) {
+				continue;
+			}
+			if ( empty( $route_data['schema']['title'] ) || ! is_string( $route_data['schema']['title'] ) ) {
+				WP_CLI::debug( "No valid schema title found for {$route}, skipping REST command registration.", 'rest' );
+				continue;
+			}
+			$name = $route_data['schema']['title'];
+			/** @var array<string, mixed> $schema */
+			$schema       = $route_data['schema'];
+			$rest_command = new RestCommand( $name, $route, $schema );
 			$rest_command->set_scope( 'http' );
 			$rest_command->set_api_url( $api_url );
 			$rest_command->set_auth( $auth );
-			self::register_route_commands( $rest_command, $route, $route_data, array( 'when' => 'before_wp_load' ) );
+			self::register_route_commands( $rest_command, (string) $route, $route_data, array( 'when' => 'before_wp_load' ) );
 		}
 	}
 
+	/**
+	 * Run after WordPress is loaded.
+	 *
+	 * @return void
+	 */
 	public static function after_wp_load() {
-		if ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) {
+		if ( wp_installing() ) {
 			return;
 		}
 		if ( ! class_exists( 'WP_REST_Server' ) ) {
@@ -68,14 +92,27 @@ class Runner {
 			return;
 		}
 
-		foreach ( $response_data['routes'] as $route => $route_data ) {
-			if ( empty( $route_data['schema']['title'] ) ) {
-				WP_CLI::debug( "No schema title found for {$route}, skipping REST command registration.", 'rest' );
+		if ( ! is_array( $response_data ) || ! isset( $response_data['routes'] ) || ! is_array( $response_data['routes'] ) ) {
+			return;
+		}
+		/** @var array<string, array<string, mixed>> $routes */
+		$routes = $response_data['routes'];
+		foreach ( $routes as $route => $route_data ) {
+			if ( ! is_array( $route_data ) ) {
 				continue;
 			}
-			$name         = $route_data['schema']['title'];
-			$rest_command = new RESTCommand( $name, $route, $route_data['schema'] );
-			self::register_route_commands( $rest_command, $route, $route_data );
+			if ( empty( $route_data['schema'] ) || ! is_array( $route_data['schema'] ) ) {
+				continue;
+			}
+			if ( empty( $route_data['schema']['title'] ) || ! is_string( $route_data['schema']['title'] ) ) {
+				WP_CLI::debug( "No valid schema title found for {$route}, skipping REST command registration.", 'rest' );
+				continue;
+			}
+			$name = $route_data['schema']['title'];
+			/** @var array<string, mixed> $schema */
+			$schema       = $route_data['schema'];
+			$rest_command = new RestCommand( $name, $route, $schema );
+			self::register_route_commands( $rest_command, (string) $route, $route_data );
 		}
 	}
 
@@ -89,6 +126,7 @@ class Runner {
 		if ( false === stripos( $url, 'http://' ) && false === stripos( $url, 'https://' ) ) {
 			$url = 'http://' . $url;
 		}
+		/** @var \WpOrg\Requests\Response $response */
 		$response = Utils\http_request( 'HEAD', $url );
 		if ( empty( $response->headers['link'] ) ) {
 			return false;
@@ -100,6 +138,12 @@ class Runner {
 		return $endpoint;
 	}
 
+	/**
+	 * Discover WP-API endpoint from link headers
+	 *
+	 * @param string $link_headers
+	 * @return string|false
+	 */
 	private static function discover_wp_api( $link_headers ) {
 		if ( preg_match( '#<([^>]+)> *; *rel="https://api.w.org/"#', $link_headers, $matches ) ) {
 			return $matches[1];
@@ -111,16 +155,22 @@ class Runner {
 	 * Get the index data from an API url
 	 *
 	 * @param string $api_url
-	 * @return array|false
+	 * @return array<string, mixed>|false
 	 */
 	private static function get_api_index( $api_url ) {
 		$query_char = false !== strpos( $api_url, '?' ) ? '&' : '?';
 		$api_url   .= $query_char . 'context=help';
-		$response   = Utils\http_request( 'GET', $api_url );
+		/** @var \WpOrg\Requests\Response $response */
+		$response = Utils\http_request( 'GET', $api_url );
 		if ( empty( $response->body ) ) {
 			return false;
 		}
-		return json_decode( $response->body, true );
+		/** @var array<string, mixed>|false $index */
+		$index = json_decode( $response->body, true );
+		if ( ! is_array( $index ) ) {
+			return false;
+		}
+		return $index;
 	}
 
 	/**
@@ -131,9 +181,9 @@ class Runner {
 	 *  2. WP_REST_CLI_AUTH_USER / WP_REST_CLI_AUTH_PASSWORD environment variables.
 	 *  3. http_user / http_password keys in the WP-CLI config.
 	 *
-	 * @param string $http   The URL passed to --http.
-	 * @param array  $config WP-CLI config array (e.g. WP_CLI::get_runner()->config).
-	 * @return array Auth array with 'type', 'username', 'password' keys, or empty array.
+	 * @param string               $http   The URL passed to --http.
+	 * @param array<string, mixed> $config WP-CLI config array (e.g. WP_CLI::get_runner()->config).
+	 * @return array<string, string> Auth array with 'type', 'username', 'password' keys, or empty array.
 	 */
 	public static function resolve_auth( $http, array $config = array() ) {
 		$username = null;
@@ -171,6 +221,9 @@ class Runner {
 			return array();
 		}
 
+		assert( is_string( $username ) );
+		assert( is_string( $password ) );
+
 		return array(
 			'type'     => 'basic',
 			'username' => $username,
@@ -181,14 +234,27 @@ class Runner {
 	/**
 	 * Register WP-CLI commands for all endpoints on a route
 	 *
-	 * @param string
-	 * @param array $endpoints
+	 * @param \WP_REST_CLI\RestCommand $rest_command
+	 * @param string                   $route
+	 * @param array<string, mixed>     $route_data
+	 * @param array<string, mixed>     $command_args
+	 * @return void
 	 */
 	private static function register_route_commands( $rest_command, $route, $route_data, $command_args = array() ) {
+
+		if ( empty( $route_data['schema'] ) || ! is_array( $route_data['schema'] ) ) {
+			return;
+		}
+		if ( empty( $route_data['schema']['title'] ) || ! is_string( $route_data['schema']['title'] ) ) {
+			return;
+		}
 
 		$parent = "rest {$route_data['schema']['title']}";
 
 		$supported_commands = array();
+		if ( empty( $route_data['endpoints'] ) || ! is_array( $route_data['endpoints'] ) ) {
+			return;
+		}
 		foreach ( $route_data['endpoints'] as $endpoint ) {
 
 			$parsed_args   = preg_match_all( '#\([^\)]+\)#', $route, $matches );
@@ -196,35 +262,43 @@ class Runner {
 			$trimmed_route = rtrim( $route );
 			$is_singular   = $resource_id && substr( $trimmed_route, - strlen( $resource_id ) ) === $resource_id;
 
+			if ( ! is_array( $endpoint ) ) {
+				continue;
+			}
+			if ( empty( $endpoint['methods'] ) || ! is_array( $endpoint['methods'] ) ) {
+				continue;
+			}
+
 			$command = '';
 			// List a collection
 			if ( array( 'GET' ) === $endpoint['methods']
 				&& ! $is_singular ) {
-				$supported_commands['list'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
+				$supported_commands['list'] = ( isset( $endpoint['args'] ) && is_array( $endpoint['args'] ) ) ? $endpoint['args'] : array();
 			}
 
 			// Create a specific resource
 			if ( array( 'POST' ) === $endpoint['methods']
 				&& ! $is_singular ) {
-				$supported_commands['create'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
+				$supported_commands['create'] = ( isset( $endpoint['args'] ) && is_array( $endpoint['args'] ) ) ? $endpoint['args'] : array();
 			}
 
 			// Get a specific resource
 			if ( array( 'GET' ) === $endpoint['methods'] && $is_singular ) {
-				$supported_commands['get'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
+				$supported_commands['get'] = ( isset( $endpoint['args'] ) && is_array( $endpoint['args'] ) ) ? $endpoint['args'] : array();
 			}
 
 			// Update a specific resource
 			if ( in_array( 'POST', $endpoint['methods'], true ) && $is_singular ) {
-				$supported_commands['update'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
+				$supported_commands['update'] = ( isset( $endpoint['args'] ) && is_array( $endpoint['args'] ) ) ? $endpoint['args'] : array();
 			}
 
 			// Delete a specific resource
 			if ( array( 'DELETE' ) === $endpoint['methods'] && $is_singular ) {
-				$supported_commands['delete'] = ! empty( $endpoint['args'] ) ? $endpoint['args'] : array();
+				$supported_commands['delete'] = ( isset( $endpoint['args'] ) && is_array( $endpoint['args'] ) ) ? $endpoint['args'] : array();
 			}
 		}
 
+		/** @var array<string, array<string, mixed>> $supported_commands */
 		foreach ( $supported_commands as $command => $endpoint_args ) {
 
 			$synopsis = array();
@@ -238,6 +312,9 @@ class Runner {
 			}
 
 			foreach ( $endpoint_args as $name => $args ) {
+				if ( ! is_array( $args ) ) {
+					continue;
+				}
 				$arg_reg = array(
 					'name'        => $name,
 					'type'        => 'assoc',
@@ -316,6 +393,7 @@ class Runner {
 			WP_CLI::add_command(
 				"{$parent} {$command}",
 				array( $rest_command, $methods[ $command ] ),
+				// @phpstan-ignore argument.type
 				array(
 					'synopsis'      => $synopsis,
 					'when'          => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
@@ -327,6 +405,7 @@ class Runner {
 				WP_CLI::add_command(
 					"{$parent} diff",
 					array( $rest_command, 'diff_items' ),
+					// @phpstan-ignore argument.type
 					array(
 						'when' => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
 					)
@@ -359,6 +438,7 @@ class Runner {
 				WP_CLI::add_command(
 					"{$parent} generate",
 					array( $rest_command, 'generate_items' ),
+					// @phpstan-ignore argument.type
 					array(
 						'synopsis' => $generate_synopsis,
 						'when'     => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
@@ -377,6 +457,7 @@ class Runner {
 				WP_CLI::add_command(
 					"{$parent} edit",
 					array( $rest_command, 'edit_item' ),
+					// @phpstan-ignore argument.type
 					array(
 						'synopsis' => $synopsis,
 						'when'     => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
