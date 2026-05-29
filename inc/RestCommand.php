@@ -624,7 +624,10 @@ EOT;
 	/**
 	 * Build HTTP request arguments and allow custom authentication mechanisms.
 	 *
-	 * Hook: `restful_http_request_args`
+	 * Runs the `restful_http_request_args` hook with an associative array containing
+	 * `method`, `url`, `assoc_args`, and `headers`, plus the current RestCommand
+	 * instance as the second callback argument. Hook callbacks may return a modified
+	 * array to customize the HTTP request before dispatch.
 	 *
 	 * @param string               $method
 	 * @param string               $route
