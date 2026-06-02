@@ -16,11 +16,11 @@ class Runner {
 	 */
 	public static function load_remote_commands() {
 
-		if ( ! isset( WP_CLI::get_runner()->config['http'] ) ) {
+		$http = self::get_http_target();
+		if ( ! $http ) {
 			return;
 		}
 
-		$http    = WP_CLI::get_runner()->config['http'];
 		$api_url = self::auto_discover_api( $http );
 		if ( ! $api_url ) {
 			WP_CLI::error( "Couldn't auto-discover WP REST API endpoint from {$http}." );
@@ -30,6 +30,7 @@ class Runner {
 		if ( ! $api_index ) {
 			WP_CLI::error( "Couldn't find index data from {$api_url}." );
 		}
+
 		assert( is_array( $api_index ) );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
 		$bits = parse_url( $http );
@@ -64,6 +65,31 @@ class Runner {
 			$rest_command->set_auth( $auth );
 			self::register_route_commands( $rest_command, (string) $route, $route_data, array( 'when' => 'before_wp_load' ) );
 		}
+	}
+
+	/**
+	 * Get the HTTP target from runtime or alias config.
+	 *
+	 * @return string|false
+	 */
+	private static function get_http_target() {
+		$runner = WP_CLI::get_runner();
+
+		if ( ! empty( $runner->config['http'] ) && is_string( $runner->config['http'] ) ) {
+			return $runner->config['http'];
+		}
+
+		$alias   = is_string( $runner->alias ) ? $runner->alias : null;
+		$aliases = is_array( $runner->aliases ) ? $runner->aliases : array();
+		if ( ! $alias
+			|| ! isset( $aliases[ $alias ] )
+			|| ! is_array( $aliases[ $alias ] )
+			|| empty( $aliases[ $alias ]['http'] )
+			|| ! is_string( $aliases[ $alias ]['http'] ) ) {
+			return false;
+		}
+
+		return $aliases[ $alias ]['http'];
 	}
 
 	/**
