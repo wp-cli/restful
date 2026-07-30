@@ -653,7 +653,12 @@ EOT;
 
 		$url = rtrim( $this->api_url, '/' ) . $route;
 
-		/** @var array{method?: string, url?: string, assoc_args?: array<string, mixed>, headers?: array<string, mixed>} $request_args */
+		/**
+		 * Filter HTTP request arguments for REST API requests.
+		 *
+		 * @param array{method?: string, url?: string, assoc_args?: array<string, mixed>, headers?: array<string, mixed>} $request_args Request arguments array.
+		 * @param RestCommand $command RestCommand instance.
+		 */
 		$request_args = WP_CLI::do_hook(
 			'restful_http_request_args',
 			array(
