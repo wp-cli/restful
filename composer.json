@@ -24,7 +24,7 @@
     },
     "require-dev": {
         "wp-cli/wp-cli-tests": "^5.0",
-        "wp-cli/entity-command": "^2.8"
+        "wp-cli/entity-command": "^2.8 || ^3"
     },
     "extra": {
         "branch-alias": {
