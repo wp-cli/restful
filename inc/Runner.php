@@ -365,7 +365,6 @@ class Runner {
 			WP_CLI::add_command(
 				"{$parent} {$command}",
 				array( $rest_command, $methods[ $command ] ),
-				// @phpstan-ignore argument.type
 				array(
 					'synopsis'      => $synopsis,
 					'when'          => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
@@ -377,7 +376,6 @@ class Runner {
 				WP_CLI::add_command(
 					"{$parent} diff",
 					array( $rest_command, 'diff_items' ),
-					// @phpstan-ignore argument.type
 					array(
 						'when' => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
 					)
@@ -410,7 +408,6 @@ class Runner {
 				WP_CLI::add_command(
 					"{$parent} generate",
 					array( $rest_command, 'generate_items' ),
-					// @phpstan-ignore argument.type
 					array(
 						'synopsis' => $generate_synopsis,
 						'when'     => ! empty( $command_args['when'] ) ? $command_args['when'] : '',
@@ -429,7 +426,6 @@ class Runner {
 				WP_CLI::add_command(
 					"{$parent} edit",
 					array( $rest_command, 'edit_item' ),
-					// @phpstan-ignore argument.type
 					array(
 						'synopsis' => $synopsis,
 						'when'     => ! empty( $command_args['when'] ) ? $command_args['when'] : '',

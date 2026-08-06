@@ -334,17 +334,16 @@ class RestCommand {
 		$other_args       = implode( ' ', array_map( 'escapeshellarg', array( $alias, 'rest', $this->name, 'list' ) ) );
 		$other_assoc_args = Utils\assoc_args_to_str( array( 'format' => 'envelope' ) );
 		$full_command     = "{$php_bin} {$script_path} {$other_args} {$other_assoc_args}";
-		$process          = \WP_CLI\Process::create(
-			$full_command,
-			null,
-			array(
-				'HOME'                => getenv( 'HOME' ),
-				'WP_CLI_PACKAGES_DIR' => getenv( 'WP_CLI_PACKAGES_DIR' ),
-				'WP_CLI_CONFIG_PATH'  => getenv( 'WP_CLI_CONFIG_PATH' ),
-			)
-		);
-		$result           = $process->run();
-		$response         = json_decode( $result->stdout, true );
+		$env              = array();
+		foreach ( array( 'HOME', 'WP_CLI_PACKAGES_DIR', 'WP_CLI_CONFIG_PATH' ) as $var ) {
+			$val = getenv( $var );
+			if ( false !== $val ) {
+				$env[ $var ] = $val;
+			}
+		}
+		$process  = \WP_CLI\Process::create( $full_command, null, $env );
+		$result   = $process->run();
+		$response = json_decode( $result->stdout, true );
 		if ( ! is_array( $response ) || ! isset( $response['headers'] ) || ! isset( $response['body'] ) || ! isset( $response['api_url'] ) || ! is_string( $response['api_url'] ) ) {
 			WP_CLI::error( 'Invalid response from alias.' );
 		}
@@ -633,7 +632,7 @@ EOT;
 	 * @param string               $route
 	 * @param array<string, mixed> $assoc_args
 	 *
-	 * @return array{0: string, 1: string, 2: array<string, mixed>, 3: array<string, mixed>}
+	 * @return array{0: string, 1: string, 2: array<string, mixed>, 3: array<string, string>}
 	 */
 	private function get_http_request_args( $method, $route, $assoc_args ) {
 		$headers = array();
@@ -656,7 +655,7 @@ EOT;
 		/**
 		 * Filter HTTP request arguments for REST API requests.
 		 *
-		 * @param array{method?: string, url?: string, assoc_args?: array<string, mixed>, headers?: array<string, mixed>} $request_args Request arguments array.
+		 * @param array{method?: string, url?: string, assoc_args?: array<string, mixed>, headers?: array<string, string>} $request_args Request arguments array.
 		 * @param RestCommand $command RestCommand instance.
 		 */
 		$request_args = WP_CLI::do_hook(
