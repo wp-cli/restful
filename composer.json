@@ -20,11 +20,11 @@
         ]
     },
     "require": {
-        "wp-cli/wp-cli": "^2.13"
+        "wp-cli/wp-cli": "^3.0"
     },
     "require-dev": {
         "wp-cli/wp-cli-tests": "^5.0",
-        "wp-cli/entity-command": "^2.8"
+        "wp-cli/entity-command": "^2.8 || ^3"
     },
     "extra": {
         "branch-alias": {
@@ -41,6 +41,7 @@
         "behat": "run-behat-tests",
         "behat-rerun": "rerun-behat-tests",
         "lint": "run-linter-tests",
+        "lint-gherkin": "run-gherkin-lint-tests",
         "phpcs": "run-phpcs-tests",
         "phpcbf": "run-phpcbf-cleanup",
         "phpstan": "run-phpstan-tests",
@@ -48,6 +49,7 @@
         "prepare-tests": "install-package-tests",
         "test": [
             "@lint",
+            "@lint-gherkin",
             "@phpcs",
             "@phpstan",
             "@phpunit",

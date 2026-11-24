@@ -334,17 +334,16 @@ class RestCommand {
 		$other_args       = implode( ' ', array_map( 'escapeshellarg', array( $alias, 'rest', $this->name, 'list' ) ) );
 		$other_assoc_args = Utils\assoc_args_to_str( array( 'format' => 'envelope' ) );
 		$full_command     = "{$php_bin} {$script_path} {$other_args} {$other_assoc_args}";
-		$process          = \WP_CLI\Process::create(
-			$full_command,
-			null,
-			array(
-				'HOME'                => getenv( 'HOME' ),
-				'WP_CLI_PACKAGES_DIR' => getenv( 'WP_CLI_PACKAGES_DIR' ),
-				'WP_CLI_CONFIG_PATH'  => getenv( 'WP_CLI_CONFIG_PATH' ),
-			)
-		);
-		$result           = $process->run();
-		$response         = json_decode( $result->stdout, true );
+		$env              = array();
+		foreach ( array( 'HOME', 'WP_CLI_PACKAGES_DIR', 'WP_CLI_CONFIG_PATH' ) as $var ) {
+			$val = getenv( $var );
+			if ( false !== $val ) {
+				$env[ $var ] = $val;
+			}
+		}
+		$process  = \WP_CLI\Process::create( $full_command, null, $env );
+		$result   = $process->run();
+		$response = json_decode( $result->stdout, true );
 		if ( ! is_array( $response ) || ! isset( $response['headers'] ) || ! isset( $response['body'] ) || ! isset( $response['api_url'] ) || ! is_string( $response['api_url'] ) ) {
 			WP_CLI::error( 'Invalid response from alias.' );
 		}
@@ -591,21 +590,9 @@ EOT;
 			}
 			return array( $response->get_status(), $response->get_data(), $response->get_headers() );
 		} elseif ( 'http' === $this->scope ) {
-			$headers = array();
-			if ( ! empty( $this->auth ) && 'basic' === $this->auth['type'] ) {
-				$username = isset( $this->auth['username'] ) ? $this->auth['username'] : '';
-				$password = isset( $this->auth['password'] ) ? $this->auth['password'] : '';
-				if ( is_scalar( $username ) && is_scalar( $password ) ) {
-					// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-					$headers['Authorization'] = 'Basic ' . base64_encode( (string) $username . ':' . (string) $password );
-				}
-			}
-			if ( 'OPTIONS' === $method ) {
-				$method                = 'GET';
-				$assoc_args['_method'] = 'OPTIONS';
-			}
+			list( $method, $url, $assoc_args, $headers ) = $this->get_http_request_args( $method, $route, $assoc_args );
 			/** @var \WpOrg\Requests\Response $response */
-			$response = Utils\http_request( $method, rtrim( $this->api_url, '/' ) . $route, $assoc_args, $headers );
+			$response = Utils\http_request( $method, $url, $assoc_args, $headers );
 			$body     = json_decode( $response->body, true );
 			if ( ! is_array( $body ) ) {
 				$body = array();
@@ -631,6 +618,73 @@ EOT;
 		WP_CLI::error( 'Invalid scope for REST command.' );
 		// @phpstan-ignore deadCode.unreachable
 		return array( 0, '', array() );
+	}
+
+	/**
+	 * Build HTTP request arguments and allow custom authentication mechanisms.
+	 *
+	 * Runs the `restful_http_request_args` hook with an associative array containing
+	 * `method`, `url`, `assoc_args`, and `headers`, plus the current RestCommand
+	 * instance as the second callback argument. Hook callbacks may return a modified
+	 * array to customize the HTTP request before dispatch.
+	 *
+	 * @param string               $method
+	 * @param string               $route
+	 * @param array<string, mixed> $assoc_args
+	 *
+	 * @return array{0: string, 1: string, 2: array<string, mixed>, 3: array<string, string>}
+	 */
+	private function get_http_request_args( $method, $route, $assoc_args ) {
+		$headers = array();
+		if ( ! empty( $this->auth ) && 'basic' === $this->auth['type'] ) {
+			$username = isset( $this->auth['username'] ) ? $this->auth['username'] : '';
+			$password = isset( $this->auth['password'] ) ? $this->auth['password'] : '';
+			if ( is_scalar( $username ) && is_scalar( $password ) ) {
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+				$headers['Authorization'] = 'Basic ' . base64_encode( (string) $username . ':' . (string) $password );
+			}
+		}
+
+		if ( 'OPTIONS' === $method ) {
+			$method                = 'GET';
+			$assoc_args['_method'] = 'OPTIONS';
+		}
+
+		$url = rtrim( $this->api_url, '/' ) . $route;
+
+		/**
+		 * Filter HTTP request arguments for REST API requests.
+		 *
+		 * @param array{method?: string, url?: string, assoc_args?: array<string, mixed>, headers?: array<string, string>} $request_args Request arguments array.
+		 * @param RestCommand $command RestCommand instance.
+		 */
+		$request_args = WP_CLI::do_hook(
+			'restful_http_request_args',
+			array(
+				'method'     => $method,
+				'url'        => $url,
+				'assoc_args' => $assoc_args,
+				'headers'    => $headers,
+			),
+			$this
+		);
+
+		if ( is_array( $request_args ) ) {
+			if ( array_key_exists( 'method', $request_args ) && is_string( $request_args['method'] ) ) {
+				$method = $request_args['method'];
+			}
+			if ( array_key_exists( 'url', $request_args ) && is_string( $request_args['url'] ) ) {
+				$url = $request_args['url'];
+			}
+			if ( array_key_exists( 'assoc_args', $request_args ) && is_array( $request_args['assoc_args'] ) ) {
+				$assoc_args = $request_args['assoc_args'];
+			}
+			if ( array_key_exists( 'headers', $request_args ) && is_array( $request_args['headers'] ) ) {
+				$headers = $request_args['headers'];
+			}
+		}
+
+		return array( $method, $url, $assoc_args, $headers );
 	}
 
 	/**
