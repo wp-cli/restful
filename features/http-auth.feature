@@ -3,6 +3,8 @@ Feature: Authenticate remote requests with application passwords
   Background:
     Given a WP install
     And a PHP built-in web server
+    And I run `wp option update home http://localhost:8080`
+    And I run `wp option update siteurl http://localhost:8080`
     And I run `wp config set WP_ENVIRONMENT_TYPE local`
     And I run `wp user application-password create 1 restful --porcelain`
     And save STDOUT as {APP_PASSWORD}
@@ -11,7 +13,7 @@ Feature: Authenticate remote requests with application passwords
     When I try `wp --http=localhost:8080 rest user get 1 --context=edit --field=email`
     Then STDERR should contain:
       """
-      Error:
+      {"status":401}
       """
     And the return code should be 1
 
