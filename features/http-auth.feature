@@ -1,3 +1,4 @@
+@require-wp-5.6
 Feature: Authenticate remote requests with application passwords
 
   Background:
