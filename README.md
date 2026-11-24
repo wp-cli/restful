@@ -70,6 +70,22 @@ usage: wp rest command <command>
    or: wp rest spark <command>
 ```
 
+#### Authenticating remote requests
+
+Requests made with `--http=<domain>` can authenticate with an [application password](https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/), sent as HTTP Basic Auth. Credentials are taken from the first of these sources that provides a username:
+
+1. The URL itself, e.g. `--http=https://admin:password@example.com`. Percent-encode special characters, e.g. the spaces in an application password as `%20`.
+2. The `WP_REST_CLI_AUTH_USER` and `WP_REST_CLI_AUTH_PASSWORD` environment variables.
+3. The `http_user` and `http_password` keys in a `wp-cli.yml` or `config.yml` file.
+
+Use an `https://` URL, as Basic Auth sends the password with every request. To keep the password out of your shell history, enter it with `read -rs` rather than typing it into a command:
+
+```
+$ export WP_REST_CLI_AUTH_USER=admin
+$ read -rs WP_REST_CLI_AUTH_PASSWORD && export WP_REST_CLI_AUTH_PASSWORD
+$ wp --http=https://example.com rest post create --title="Hello" --status=draft
+```
+
 ### 2. Registers WP-CLI commands for the resource endpoints it understands, in the `wp rest` namespace.
 
 In addition to the standard list, get, create, update and delete commands, RESTful WP-CLI also registers commands for higher-level operations like `edit`, `generate` and `diff`.

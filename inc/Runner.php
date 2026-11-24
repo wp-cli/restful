@@ -32,17 +32,15 @@ class Runner {
 		}
 
 		assert( is_array( $api_index ) );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
-		$bits = parse_url( $http );
-		$auth = array();
-		if ( ! empty( $bits['user'] ) ) {
-			$auth['type']     = 'basic';
-			$auth['username'] = $bits['user'];
-			$auth['password'] = ! empty( $bits['pass'] ) ? $bits['pass'] : '';
-		}
+
+		// Keys unknown to WP-CLI, such as http_user, end up in extra_config rather than config.
+		$extra_config = WP_CLI::get_runner()->extra_config;
+		$auth         = self::resolve_auth( $http, is_array( $extra_config ) ? $extra_config : array() );
+
 		if ( ! isset( $api_index['routes'] ) || ! is_array( $api_index['routes'] ) ) {
 			WP_CLI::error( "No routes found in API index from {$api_url}." );
 		}
+
 		/** @var array<string, array<string, mixed>> $routes */
 		$routes = $api_index['routes'];
 		foreach ( $routes as $route => $route_data ) {
@@ -201,6 +199,62 @@ class Runner {
 			return false;
 		}
 		return $index;
+	}
+
+	/**
+	 * Resolve HTTP Basic Auth credentials from the available sources.
+	 *
+	 * Priority (highest wins):
+	 *  1. Credentials embedded in the URL (user:pass@host).
+	 *  2. WP_REST_CLI_AUTH_USER / WP_REST_CLI_AUTH_PASSWORD environment variables.
+	 *  3. http_user / http_password keys in the WP-CLI config.
+	 *
+	 * @param string               $http   The URL passed to --http.
+	 * @param array<string, mixed> $config Extra WP-CLI config, i.e. WP_CLI::get_runner()->extra_config.
+	 * @return array<string, string> Auth array with 'type', 'username', 'password' keys, or empty array.
+	 */
+	public static function resolve_auth( $http, array $config = array() ) {
+		$username = null;
+		$password = '';
+
+		// Lowest priority: wp-cli config (http_user / http_password).
+		if ( isset( $config['http_user'] ) && is_scalar( $config['http_user'] ) && '' !== (string) $config['http_user'] ) {
+			$username = (string) $config['http_user'];
+			$password = isset( $config['http_password'] ) && is_scalar( $config['http_password'] ) ? (string) $config['http_password'] : '';
+		}
+
+		// Medium priority: environment variables.
+		// An empty username is not valid for authentication, so we skip if it is empty.
+		// An empty password is allowed (e.g. passwordless setups), consistent with URL embedding.
+		$env_user = getenv( 'WP_REST_CLI_AUTH_USER' );
+		if ( false !== $env_user && '' !== $env_user ) {
+			$username     = $env_user;
+			$env_password = getenv( 'WP_REST_CLI_AUTH_PASSWORD' );
+			$password     = ( false !== $env_password ) ? $env_password : '';
+		}
+
+		// Highest priority: credentials embedded in the URL.
+		// Ensure the URL has a scheme so parse_url() can extract user:pass correctly.
+		if ( ! preg_match( '#^https?://#i', $http ) ) {
+			$http = 'http://' . $http;
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
+		$bits = parse_url( $http );
+		if ( isset( $bits['user'] ) && '' !== $bits['user'] ) {
+			// parse_url() doesn't decode the userinfo, e.g. the spaces in an application password.
+			$username = rawurldecode( $bits['user'] );
+			$password = isset( $bits['pass'] ) ? rawurldecode( $bits['pass'] ) : '';
+		}
+
+		if ( null === $username ) {
+			return array();
+		}
+
+		return array(
+			'type'     => 'basic',
+			'username' => $username,
+			'password' => $password,
+		);
 	}
 
 	/**
