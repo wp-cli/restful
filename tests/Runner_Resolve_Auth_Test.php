@@ -63,6 +63,32 @@ class Runner_Resolve_Auth_Test extends TestCase {
 		);
 	}
 
+	public function test_config_casts_scalar_values() {
+		$auth = \WP_REST_CLI\Runner::resolve_auth(
+			'example.com',
+			array(
+				'http_user'     => 'admin',
+				'http_password' => 0,
+			)
+		);
+		$this->assertSame(
+			array(
+				'type'     => 'basic',
+				'username' => 'admin',
+				'password' => '0',
+			),
+			$auth
+		);
+	}
+
+	public function test_config_ignores_non_scalar_user() {
+		$auth = \WP_REST_CLI\Runner::resolve_auth(
+			'example.com',
+			array( 'http_user' => array( 'admin' ) )
+		);
+		$this->assertSame( array(), $auth );
+	}
+
 	public function test_env_vars_override_config() {
 		putenv( 'WP_REST_CLI_AUTH_USER=envuser' );
 		putenv( 'WP_REST_CLI_AUTH_PASSWORD=envpass' );

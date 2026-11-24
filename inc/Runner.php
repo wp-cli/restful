@@ -33,7 +33,9 @@ class Runner {
 
 		assert( is_array( $api_index ) );
 
-		$auth = self::resolve_auth( $http, WP_CLI::get_runner()->config );
+		// Keys unknown to WP-CLI, such as http_user, end up in extra_config rather than config.
+		$extra_config = WP_CLI::get_runner()->extra_config;
+		$auth         = self::resolve_auth( $http, is_array( $extra_config ) ? $extra_config : array() );
 
 		if ( ! isset( $api_index['routes'] ) || ! is_array( $api_index['routes'] ) ) {
 			WP_CLI::error( "No routes found in API index from {$api_url}." );
@@ -208,7 +210,7 @@ class Runner {
 	 *  3. http_user / http_password keys in the WP-CLI config.
 	 *
 	 * @param string               $http   The URL passed to --http.
-	 * @param array<string, mixed> $config WP-CLI config array (e.g. WP_CLI::get_runner()->config).
+	 * @param array<string, mixed> $config Extra WP-CLI config, i.e. WP_CLI::get_runner()->extra_config.
 	 * @return array<string, string> Auth array with 'type', 'username', 'password' keys, or empty array.
 	 */
 	public static function resolve_auth( $http, array $config = array() ) {
@@ -216,9 +218,9 @@ class Runner {
 		$password = '';
 
 		// Lowest priority: wp-cli config (http_user / http_password).
-		if ( ! empty( $config['http_user'] ) ) {
-			$username = $config['http_user'];
-			$password = ! empty( $config['http_password'] ) ? $config['http_password'] : '';
+		if ( ! empty( $config['http_user'] ) && is_scalar( $config['http_user'] ) ) {
+			$username = (string) $config['http_user'];
+			$password = isset( $config['http_password'] ) && is_scalar( $config['http_password'] ) ? (string) $config['http_password'] : '';
 		}
 
 		// Medium priority: environment variables.
@@ -233,22 +235,19 @@ class Runner {
 
 		// Highest priority: credentials embedded in the URL.
 		// Ensure the URL has a scheme so parse_url() can extract user:pass correctly.
-		if ( false === stripos( $http, 'http://' ) && false === stripos( $http, 'https://' ) ) {
+		if ( ! preg_match( '#^https?://#i', $http ) ) {
 			$http = 'http://' . $http;
 		}
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
 		$bits = parse_url( $http );
 		if ( ! empty( $bits['user'] ) ) {
 			$username = $bits['user'];
-			$password = ! empty( $bits['pass'] ) ? $bits['pass'] : '';
+			$password = isset( $bits['pass'] ) ? $bits['pass'] : '';
 		}
 
 		if ( null === $username ) {
 			return array();
 		}
-
-		assert( is_string( $username ) );
-		assert( is_string( $password ) );
 
 		return array(
 			'type'     => 'basic',
