@@ -81,6 +81,35 @@ class Runner_Resolve_Auth_Test extends TestCase {
 		);
 	}
 
+	public function test_config_allows_username_zero() {
+		$auth = \WP_REST_CLI\Runner::resolve_auth(
+			'example.com',
+			array(
+				'http_user'     => '0',
+				'http_password' => 'cfgpass',
+			)
+		);
+		$this->assertSame(
+			array(
+				'type'     => 'basic',
+				'username' => '0',
+				'password' => 'cfgpass',
+			),
+			$auth
+		);
+	}
+
+	public function test_config_values_are_not_url_decoded() {
+		$auth = \WP_REST_CLI\Runner::resolve_auth(
+			'example.com',
+			array(
+				'http_user'     => 'cfguser',
+				'http_password' => 'pa%20ss',
+			)
+		);
+		$this->assertSame( 'pa%20ss', $auth['password'] );
+	}
+
 	public function test_config_ignores_non_scalar_user() {
 		$auth = \WP_REST_CLI\Runner::resolve_auth(
 			'example.com',
@@ -165,6 +194,9 @@ class Runner_Resolve_Auth_Test extends TestCase {
 			'https scheme'     => array( 'https://urluser:urlpass@example.com', 'urluser', 'urlpass' ),
 			'user only'        => array( 'urluser@example.com', 'urluser', '' ),
 			'user only, https' => array( 'https://urluser@example.com', 'urluser', '' ),
+			'username "0"'     => array( 'https://0:urlpass@example.com', '0', 'urlpass' ),
+			'percent-encoded'  => array( 'https://admin:abcd%20EFGH%201234%20ijkl@example.com', 'admin', 'abcd EFGH 1234 ijkl' ),
+			'encoded @ and :'  => array( 'https://us%40er:p%3Ass@example.com', 'us@er', 'p:ss' ),
 		);
 	}
 

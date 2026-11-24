@@ -218,7 +218,7 @@ class Runner {
 		$password = '';
 
 		// Lowest priority: wp-cli config (http_user / http_password).
-		if ( ! empty( $config['http_user'] ) && is_scalar( $config['http_user'] ) ) {
+		if ( isset( $config['http_user'] ) && is_scalar( $config['http_user'] ) && '' !== (string) $config['http_user'] ) {
 			$username = (string) $config['http_user'];
 			$password = isset( $config['http_password'] ) && is_scalar( $config['http_password'] ) ? (string) $config['http_password'] : '';
 		}
@@ -240,9 +240,10 @@ class Runner {
 		}
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
 		$bits = parse_url( $http );
-		if ( ! empty( $bits['user'] ) ) {
-			$username = $bits['user'];
-			$password = isset( $bits['pass'] ) ? $bits['pass'] : '';
+		if ( isset( $bits['user'] ) && '' !== $bits['user'] ) {
+			// parse_url() doesn't decode the userinfo, e.g. the spaces in an application password.
+			$username = rawurldecode( $bits['user'] );
+			$password = isset( $bits['pass'] ) ? rawurldecode( $bits['pass'] ) : '';
 		}
 
 		if ( null === $username ) {
